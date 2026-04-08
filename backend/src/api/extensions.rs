@@ -94,7 +94,7 @@ impl<T: Serialize> ApiResponse<T> {
         }
     }
 
-    pub fn err(error: String) -> ApiResponse<()> {
+    pub fn err(error: String) -> ApiResponse<serde_json::Value> {
         ApiResponse {
             success: false,
             data: None,
@@ -229,7 +229,7 @@ async fn record_metric(
 
     match state.timeseries_db.record_metric(point) {
         Ok(_) => (StatusCode::ACCEPTED, Json(ApiResponse::ok(json!({"recorded": req.metric_name})))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::err(e))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<serde_json::Value>::err(e))).into_response(),
     }
 }
 
@@ -238,7 +238,7 @@ async fn query_metrics(
 ) -> impl IntoResponse {
     match state.timeseries_db.get_alerts() {
         Ok(alerts) => Json(ApiResponse::ok(json!({"alerts": alerts}))),
-        Err(e) => Json(ApiResponse::<()>::err(e)),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(e)),
     }
 }
 
@@ -259,7 +259,7 @@ async fn get_metric_stats(
             "avg": stats.avg,
             "count": stats.count,
         }))),
-        Err(e) => Json(ApiResponse::<()>::err(e)),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(e)),
     }
 }
 
@@ -270,7 +270,7 @@ async fn get_alerts(
 ) -> impl IntoResponse {
     match state.timeseries_db.get_alerts() {
         Ok(alerts) => Json(ApiResponse::ok(json!({"alerts": alerts}))),
-        Err(e) => Json(ApiResponse::<()>::err(e)),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(e)),
     }
 }
 
@@ -296,7 +296,7 @@ async fn create_alert(
 
     match state.timeseries_db.add_alert(alert) {
         Ok(_) => (StatusCode::CREATED, Json(ApiResponse::ok(json!({"alert_id": "alert_1", "status": "created"})))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::err(e))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<serde_json::Value>::err(e))).into_response(),
     }
 }
 
@@ -306,7 +306,7 @@ async fn acknowledge_alert(
 ) -> impl IntoResponse {
     match state.timeseries_db.acknowledge_alert(&alert_id) {
         Ok(_) => Json(ApiResponse::ok(json!({"alert_id": alert_id, "status": "acknowledged"}))),
-        Err(e) => Json(ApiResponse::<()>::err(e)),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(e)),
     }
 }
 
@@ -324,7 +324,7 @@ async fn get_audit_logs(
                 .collect();
             Json(ApiResponse::ok(json!({"logs": filtered, "count": filtered.len()})))
         }
-        Err(e) => Json(ApiResponse::<()>::err(format!("{}", e))),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(format!("{}", e))),
     }
 }
 
@@ -334,7 +334,7 @@ async fn get_audit_by_actor(
 ) -> impl IntoResponse {
     match state.audit_logger.query_by_actor(&actor_id) {
         Ok(logs) => Json(ApiResponse::ok(json!({"actor_id": actor_id, "logs": logs, "count": logs.len()}))),
-        Err(e) => Json(ApiResponse::<()>::err(format!("{}", e))),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(format!("{}", e))),
     }
 }
 
@@ -354,7 +354,7 @@ async fn get_audit_by_action(
 
     match state.audit_logger.query_by_action(audit_action) {
         Ok(logs) => Json(ApiResponse::ok(json!({"action": action, "logs": logs, "count": logs.len()}))),
-        Err(e) => Json(ApiResponse::<()>::err(format!("{}", e))),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(format!("{}", e))),
     }
 }
 
@@ -384,10 +384,10 @@ async fn login(
                     ));
                     (StatusCode::OK, Json(ApiResponse::ok(token))).into_response()
                 }
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::<()>::err(format!("{}", e)))).into_response(),
+                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::<serde_json::Value>::err(format!("{}", e)))).into_response(),
             }
         }
-        Err(e) => (StatusCode::UNAUTHORIZED, Json(ApiResponse::<()>::err(format!("{}", e)))).into_response(),
+        Err(e) => (StatusCode::UNAUTHORIZED, Json(ApiResponse::<serde_json::Value>::err(format!("{}", e)))).into_response(),
     }
 }
 
@@ -406,7 +406,7 @@ async fn verify_token(
             "user_id": token.user_id,
             "username": token.username,
         }))),
-        Err(e) => Json(ApiResponse::<()>::err(format!("{}", e))),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(format!("{}", e))),
     }
 }
 
@@ -429,6 +429,6 @@ async fn get_user_permissions(
             "user_id": user_id,
             "permissions": user.permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>(),
         }))),
-        Err(e) => Json(ApiResponse::<()>::err(format!("{}", e))),
+        Err(e) => Json(ApiResponse::<serde_json::Value>::err(format!("{}", e))),
     }
 }

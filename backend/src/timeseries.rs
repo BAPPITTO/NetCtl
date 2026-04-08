@@ -20,7 +20,7 @@ pub struct TimeseriesPoint {
 }
 
 /// Operators for alert thresholds
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AlertOperator {
     GreaterThan,
     LessThan,
@@ -30,7 +30,7 @@ pub enum AlertOperator {
 }
 
 /// Alert states in their lifecycle
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AlertState {
     Active,
     Acknowledged,
@@ -38,7 +38,7 @@ pub enum AlertState {
 }
 
 /// Represents a metric alert with threshold and triggering conditions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MetricAlert {
     pub id: String,
     pub metric_name: String,
