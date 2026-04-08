@@ -71,3 +71,5 @@ impl<T: Serialize> ApiResponse<T> {
 
 pub mod handlers;
 pub mod extensions;
+pub mod lan_config;
+pub mod cert_handler;

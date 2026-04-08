@@ -1,0 +1,360 @@
+name: Build & Release Linux Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-debian:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            devscripts \
+            debhelper \
+            cargo \
+            rustc \
+            llvm-dev \
+            clang \
+            npm
+      
+      - name: Build backend
+        run: |
+          cd backend
+          cargo build --release
+          cargo test --release
+      
+      - name: Build eBPF
+        run: |
+          cd ebpf
+          cargo build --release
+      
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      
+      - name: Create Debian package
+        run: |
+          mkdir -p /tmp/netctl-1.0.0/DEBIAN
+          mkdir -p /tmp/netctl-1.0.0/usr/bin
+          mkdir -p /tmp/netctl-1.0.0/var/lib/netctl/public
+          mkdir -p /tmp/netctl-1.0.0/etc/netctl
+          mkdir -p /tmp/netctl-1.0.0/etc/systemd/system
+          mkdir -p /tmp/netctl-1.0.0/var/log/netctl
+          
+          # Copy binaries
+          cp backend/target/release/netctl-daemon /tmp/netctl-1.0.0/usr/bin/netctl
+          cp backend/target/release/netctl-tui /tmp/netctl-1.0.0/usr/bin/
+          cp backend/target/release/netctl-cli /tmp/netctl-1.0.0/usr/bin/
+          chmod 755 /tmp/netctl-1.0.0/usr/bin/*
+          
+          # Copy frontend
+          cp -r frontend/dist/* /tmp/netctl-1.0.0/var/lib/netctl/public/
+          chmod 644 /tmp/netctl-1.0.0/var/lib/netctl/public/*
+          
+          # Create control file
+          cat > /tmp/netctl-1.0.0/DEBIAN/control << 'EOF'
+          Package: netctl
+          Version: 1.0.0-1
+          Architecture: amd64
+          Maintainer: Jericho Foster <jerichofoster@example.com>
+          Homepage: https://github.com/jerichofoster/NetCtl
+          Description: Network Control Engine - Advanced network management and QoS
+           NetCtl is a production-grade network management daemon with eBPF/XDP kernel-level QoS,
+           transactional state management, comprehensive dashboard, and VLAN/DHCP support.
+          Depends: libc6 (>= 2.31), libssl3 (>= 3.0), dnsmasq
+          Recommends: linux-headers, linux-image (>= 5.8)
+          Priority: optional
+          Section: net
+          EOF
+          
+          # Create postinst
+          cat > /tmp/netctl-1.0.0/DEBIAN/postinst << 'EOF'
+          #!/bin/bash
+          set -e
+          systemctl daemon-reload
+          systemctl enable netctl.service || true
+          systemctl restart netctl.service || true
+          exit 0
+          EOF
+          chmod 755 /tmp/netctl-1.0.0/DEBIAN/postinst
+          
+          # Create prerm
+          cat > /tmp/netctl-1.0.0/DEBIAN/prerm << 'EOF'
+          #!/bin/bash
+          set -e
+          systemctl stop netctl.service || true
+          exit 0
+          EOF
+          chmod 755 /tmp/netctl-1.0.0/DEBIAN/prerm
+          
+          # Create postrm
+          cat > /tmp/netctl-1.0.0/DEBIAN/postrm << 'EOF'
+          #!/bin/bash
+          set -e
+          rm -rf /var/lib/netctl
+          systemctl daemon-reload || true
+          exit 0
+          EOF
+          chmod 755 /tmp/netctl-1.0.0/DEBIAN/postrm
+          
+          # Create systemd service
+          cat > /tmp/netctl-1.0.0/etc/systemd/system/netctl.service << 'EOF'
+          [Unit]
+          Description=NetCtl Network Management Daemon
+          After=network.target
+          
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/netctl
+          Restart=on-failure
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=netctl
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Build .deb
+          dpkg-deb --build /tmp/netctl-1.0.0 netctl_1.0.0-1_amd64.deb
+          ls -lah netctl_1.0.0-1_amd64.deb
+      
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: debian-package
+          path: netctl_1.0.0-1_amd64.deb
+
+  build-rpm:
+    runs-on: ubuntu-22.04
+    container: rockylinux:8
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          yum install -y \
+            gcc \
+            make \
+            rpm-build \
+            cargo \
+            rust \
+            llvm-devel \
+            clang \
+            git \
+            npm
+      
+      - name: Build backend
+        run: |
+          cd backend
+          cargo build --release
+          cargo test --release
+      
+      - name: Build eBPF
+        run: |
+          cd ebpf
+          cargo build --release
+      
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      
+      - name: Create RPM package
+        run: |
+          mkdir -p /root/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
+          mkdir -p /tmp/netctl-1.0.0/usr/bin
+          mkdir -p /tmp/netctl-1.0.0/var/lib/netctl/public
+          mkdir -p /tmp/netctl-1.0.0/etc/netctl
+          mkdir -p /tmp/netctl-1.0.0/etc/systemd/system
+          mkdir -p /tmp/netctl-1.0.0/var/log/netctl
+          
+          # Copy binaries
+          cp backend/target/release/netctl-daemon /tmp/netctl-1.0.0/usr/bin/netctl
+          cp backend/target/release/netctl-tui /tmp/netctl-1.0.0/usr/bin/
+          cp backend/target/release/netctl-cli /tmp/netctl-1.0.0/usr/bin/
+          chmod 755 /tmp/netctl-1.0.0/usr/bin/*
+          
+          # Copy frontend
+          cp -r frontend/dist/* /tmp/netctl-1.0.0/var/lib/netctl/public/
+          chmod 644 /tmp/netctl-1.0.0/var/lib/netctl/public/*
+          
+          # Create systemd service
+          cat > /tmp/netctl-1.0.0/etc/systemd/system/netctl.service << 'EOF'
+          [Unit]
+          Description=NetCtl Network Management Daemon
+          After=network.target
+          
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/netctl
+          Restart=on-failure
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=netctl
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Create spec file
+          cat > /root/rpmbuild/SPECS/netctl.spec << 'EOF'
+          Name:           netctl
+          Version:        1.0.0
+          Release:        1%{?dist}
+          Summary:        Network Control Engine - Advanced network management and QoS
+          License:        MIT
+          URL:            https://github.com/jerichofoster/NetCtl
+          
+          BuildRequires:  cargo, rust, llvm-devel, clang, npm
+          Requires:       libc, openssl, dnsmasq
+          Recommends:     kernel >= 5.8.0, kernel-devel
+          
+          %description
+          NetCtl is a production-grade network management daemon with eBPF/XDP kernel-level QoS,
+          transactional state management, comprehensive dashboard, and VLAN/DHCP support.
+          
+          %prep
+          
+          %build
+          
+          %install
+          mkdir -p %{buildroot}/usr/bin
+          mkdir -p %{buildroot}/var/lib/netctl/public
+          mkdir -p %{buildroot}/etc/netctl
+          mkdir -p %{buildroot}/etc/systemd/system
+          mkdir -p %{buildroot}/var/log/netctl
+          
+          cp /tmp/netctl-1.0.0/usr/bin/netctl %{buildroot}/usr/bin/
+          cp /tmp/netctl-1.0.0/usr/bin/netctl-tui %{buildroot}/usr/bin/
+          cp /tmp/netctl-1.0.0/usr/bin/netctl-cli %{buildroot}/usr/bin/
+          chmod 755 %{buildroot}/usr/bin/netctl*
+          cp -r /tmp/netctl-1.0.0/var/lib/netctl/public/* %{buildroot}/var/lib/netctl/public/
+          chmod 644 %{buildroot}/var/lib/netctl/public/*
+          cp /tmp/netctl-1.0.0/etc/systemd/system/netctl.service %{buildroot}/etc/systemd/system/
+          
+          %post
+          systemctl daemon-reload
+          systemctl enable netctl.service || true
+          systemctl restart netctl.service || true
+          
+          %preun
+          systemctl stop netctl.service || true
+          
+          %postun
+          rm -rf /var/lib/netctl
+          systemctl daemon-reload || true
+          
+          %files
+          /usr/bin/netctl
+          /usr/bin/netctl-tui
+          /var/lib/netctl/public/*
+          /etc/systemd/system/netctl.service
+          %dir /var/log/netctl
+          %dir /etc/netctl
+          
+          %changelog
+          * Mon Apr 08 2026 Jericho Foster <jerichofoster@example.com> - 1.0.0-1
+          - Initial release
+          EOF
+          
+          # Build RPM
+          tar czf /root/rpmbuild/SOURCES/netctl-1.0.0.tar.gz -C /tmp netctl-1.0.0
+          rpmbuild -ba /root/rpmbuild/SPECS/netctl.spec
+          cp /root/rpmbuild/RPMS/x86_64/netctl-*.rpm ./netctl-1.0.0-1.el8.x86_64.rpm
+          ls -lah netctl-1.0.0-1.el8.x86_64.rpm
+      
+      - name: Upload RPM package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rpm-package
+          path: netctl-1.0.0-1.el8.x86_64.rpm
+
+  release:
+    needs: [build-debian, build-rpm]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
+      
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-files
+          cp artifacts/debian-package/netctl_1.0.0-1_amd64.deb release-files/
+          cp artifacts/rpm-package/netctl-1.0.0-1.el8.x86_64.rpm release-files/
+          
+          cd release-files
+          sha256sum netctl_1.0.0-1_amd64.deb netctl-1.0.0-1.el8.x86_64.rpm > CHECKSUMS.txt
+          cat CHECKSUMS.txt
+          ls -lah
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-files/netctl_1.0.0-1_amd64.deb
+            release-files/netctl-1.0.0-1.el8.x86_64.rpm
+            release-files/CHECKSUMS.txt
+          body: |
+            # NetCtl 1.0.0 Release
+
+            Production-grade network management daemon with eBPF/XDP QoS control.
+
+            ## Features
+            - ✓ Interactive TUI setup wizard
+            - ✓ Advanced network management & QoS
+            - ✓ eBPF/XDP kernel-level packet filtering
+            - ✓ Transactional state management with rollback
+            - ✓ Web dashboard with real-time metrics
+            - ✓ VLAN & DHCP management
+
+            ## Package Contents
+
+            ### Ubuntu/Debian (amd64)
+            - Filename: `netctl_1.0.0-1_amd64.deb`
+            - Install: `sudo apt install ./netctl_1.0.0-1_amd64.deb`
+
+            ### CentOS/RHEL (x86_64)
+            - Filename: `netctl-1.0.0-1.el8.x86_64.rpm`
+            - Install: `sudo rpm -i ./netctl-1.0.0-1.el8.x86_64.rpm`
+
+            ## Installation
+
+            1. Download the appropriate package for your system
+            2. Install: `sudo apt install ./package.deb` or `sudo rpm -i ./package.rpm`
+            3. Run setup: `sudo netctl-tui`
+            4. Start daemon: `sudo systemctl start netctl`
+
+            ## System Requirements
+            - Linux kernel 5.8+
+            - x86_64 CPU architecture
+            - 512MB RAM minimum
+            - Internet connection (for DNS)
+
+            ## Verification
+
+            You can verify the package integrity using SHA256 checksums:
+            ```bash
+            sha256sum -c CHECKSUMS.txt
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

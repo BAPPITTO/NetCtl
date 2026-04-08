@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    configure)
+        # Create netctl system user if it doesn't exist
+        if ! id -u netctl >/dev/null 2>&1; then
+            adduser --system --group --home /var/lib/netctl --shell /usr/sbin/nologin \
+                --comment "NetCtl System User" --quiet netctl
+        fi
+
+        # Create necessary directories
+        mkdir -p /etc/netctl/certificates
+        mkdir -p /var/lib/netctl
+        mkdir -p /var/log/netctl
+        mkdir -p /var/run/netctl
+
+        # Set correct permissions
+        chown -R netctl:netctl /etc/netctl
+        chown -R netctl:netctl /var/lib/netctl
+        chown -R netctl:netctl /var/log/netctl
+        chown -R netctl:netctl /var/run/netctl
+
+        chmod 750 /etc/netctl
+        chmod 700 /etc/netctl/certificates
+        chmod 750 /var/lib/netctl
+        chmod 755 /var/log/netctl
+        chmod 750 /var/run/netctl
+
+        # Generate self-signed certificate if not present
+        if [ ! -f /etc/netctl/certificates/netctl.crt ]; then
+            echo "Generating self-signed certificate for NetCtl..."
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/netctl/certificates/netctl.key \
+                -out /etc/netctl/certificates/netctl.crt \
+                -subj "/CN=netctl.local/O=NetCtl/C=US" 2>/dev/null || true
+            chown netctl:netctl /etc/netctl/certificates/netctl.* 2>/dev/null || true
+            chmod 600 /etc/netctl/certificates/netctl.key
+            chmod 644 /etc/netctl/certificates/netctl.crt
+        fi
+
+        # Enable service but don't start (user must run setup wizard first)
+        systemctl daemon-reload || true
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument: $1" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

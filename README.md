@@ -4,6 +4,13 @@ A production-grade network management daemon built in Rust with a Matrix-style T
 
 ## Features
 
+### 🖥️ Interactive Setup
+- **TUI Setup Wizard** - Matrix-style terminal configuration with Ratatui framework
+- **8-Screen Configuration Flow** - Network, DNS, dashboard, and admin setup
+- **Real-time Validation** - IPv4, hostname, and DNS verification during setup
+- **LAN Dashboard Configuration** - Hostname, DNS verification, HTTPS support
+- **DNS Loop Detection** - Prevents configuration errors and circular dependencies
+
 ### 🧠 Core Architecture
 - **Transactional State Management** - Every network change is reversible with full rollback
 - **Idempotent Configuration** - Safe to reapply changes without duplication
@@ -56,6 +63,16 @@ A production-grade network management daemon built in Rust with a Matrix-style T
 - **QoS Control** - Set and remove rate limits
 - **Metrics Streaming** - SSE endpoint for live data
 - **WoL Integration** - Wake-on-LAN triggers
+- **DNS Verification** - Async DNS resolution with loop detection
+- **Dashboard Configuration** - LAN hostname and HTTPS settings
+- **Certificate Management** - Self-signed cert generation and validation
+
+### 📦 Enterprise Deployment
+- **Debian Packages** - .deb packages for Ubuntu/Debian systems
+- **Red Hat Packages** - .rpm packages for CentOS/RHEL/Fedora
+- **Systemd Integration** - Hardened service unit with security constraints
+- **Multi-Package Split** - Separate daemon, CLI, and dashboard packages
+- **Automated Build** - Single-command package generation script
 
 ### 🔄 Transaction & Rollback
 - **Ordered Operations** - Sequential execution order
@@ -93,6 +110,12 @@ ls dist/
 sudo ./backend/target/release/netctl-daemon
 
 # API available at http://localhost:3001
+```
+
+### Run Setup Wizard
+```bash
+# Interactive TUI configuration on Linux
+sudo cargo run --bin netctl-tui --manifest-path=backend/Cargo.toml
 ```
 
 ### Run Dashboard (Development)

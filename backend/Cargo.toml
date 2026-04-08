@@ -13,6 +13,10 @@ path = "src/main.rs"
 name = "netctl-cli"
 path = "src/bin/cli.rs"
 
+[[bin]]
+name = "netctl-tui"
+path = "src/bin/tui.rs"
+
 [dependencies]
 tokio.workspace = true
 axum.workspace = true
@@ -40,6 +44,13 @@ reqwest = { version = "0.11", features = ["json"] }
 clap = { version = "4.4", features = ["derive"] }
 env_logger = "0.11"
 log = "0.4"
+ratatui = { version = "0.26", features = ["serde"] }
+crossterm = "0.27"
+rcgen = "0.12"
+rustls = { version = "0.22", default-features = false, features = ["ring"] }
+ring = "0.17"
+x509-parser = "0.16"
+nom = "7"
 
 [dev-dependencies]
 tempfile = "3.8"

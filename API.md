@@ -404,6 +404,131 @@ eventSource.onmessage = (event) => {
 }
 ```
 
+### Dashboard Configuration (NEW)
+
+#### Configure Dashboard
+```
+POST /api/dashboard/configure
+Content-Type: application/json
+```
+
+Configure dashboard hostname, port, and HTTPS settings for LAN access.
+
+**Request:**
+```json
+{
+  "hostname": "netctl.local",
+  "port": 443,
+  "enable_https": true,
+  "local_ip_address": "192.168.1.100"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "success": true,
+    "hostname": "netctl.local",
+    "port": 443,
+    "url": "https://netctl.local",
+    "certificate_generated": true,
+    "message": "Configuration applied successfully"
+  }
+}
+```
+
+**Parameters:**
+- `hostname` (string, optional): FQDN for dashboard (e.g., netctl.local)
+- `port` (number, optional): Port number (default: 443)
+- `enable_https` (boolean, optional): Enable HTTPS with self-signed cert
+- `local_ip_address` (string, required): Local IP for verification
+
+### DNS Verification (NEW)
+
+#### Verify DNS Configuration
+```
+POST /api/dns/verify
+Content-Type: application/json
+```
+
+Verify DNS resolution and detect loops for dashboard hostname.
+
+**Request:**
+```json
+{
+  "hostname": "netctl.local",
+  "expected_ip": "192.168.1.100",
+  "dns_servers": ["8.8.8.8", "8.8.4.4"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "hostname": "netctl.local",
+    "status": "Valid",
+    "resolved_ip": "192.168.1.100",
+    "expected_ip": "192.168.1.100",
+    "loop_detected": false,
+    "message": "DNS resolution successful"
+  }
+}
+```
+
+**Status Values:**
+- `Valid` - Hostname resolves to expected IP
+- `Invalid` - Hostname resolves to different IP
+- `Loopback` - DNS loop detected (hostname resolves to itself)
+- `Unreachable` - DNS servers not responding
+- `Misconfigured` - DNS configuration error
+
+**Parameters:**
+- `hostname` (string, required): FQDN to verify
+- `expected_ip` (string, required): Expected resolved IP address
+- `dns_servers` (array, optional): Custom DNS servers to query
+
+### Certificate Management (NEW)
+
+#### Generate Self-Signed Certificate
+```
+POST /api/certificate/generate
+Content-Type: application/json
+```
+
+Generate self-signed HTTPS certificate for dashboard.
+
+**Request:**
+```json
+{
+  "common_name": "netctl.local",
+  "country": "US",
+  "state": "California",
+  "locality": "San Francisco",
+  "organization": "NetCtl",
+  "validity_days": 365
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "success": true,
+    "certificate_path": "/etc/netctl/certificates/netctl.local.crt",
+    "key_path": "/etc/netctl/certificates/netctl.local.key",
+    "valid_from": "2026-04-08T00:00:00Z",
+    "valid_until": "2027-04-08T00:00:00Z",
+    "common_name": "netctl.local",
+    "message": "Certificate generated successfully"
+  }
+}
+```
+
 ## Error Responses
 
 ### 400 Bad Request

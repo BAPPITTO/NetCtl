@@ -10,5 +10,6 @@ pub mod flow;
 pub mod security;
 pub mod timeseries;
 pub mod audit;
+pub mod tui;
 
 pub use error::{Result, Error};

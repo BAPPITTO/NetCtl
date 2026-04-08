@@ -1,0 +1,168 @@
+# Build NetCtl CentOS/RHEL package
+FROM rockylinux:8
+
+# Install build dependencies
+RUN yum install -y \
+    gcc \
+    make \
+    rpm-build \
+    cargo \
+    rust \
+    llvm-devel \
+    clang \
+    git \
+    curl \
+    npm \
+    ca-certificates \
+    && yum clean all
+
+WORKDIR /build
+
+# Copy sources
+COPY . /build/
+
+# Build backend
+RUN cd backend && \
+    cargo build --release && \
+    ls -la target/release/netctl* && \
+    cargo test --release
+
+# Build eBPF
+RUN cd ebpf && cargo build --release
+
+# Build frontend
+RUN cd frontend && \
+    npm ci && \
+    npm run build && \
+    ls -la dist/
+
+# Create RPM package structure
+RUN mkdir -p /tmp/netctl-1.0.0 && \
+    mkdir -p /tmp/netctl-1.0.0/usr/bin && \
+    mkdir -p /tmp/netctl-1.0.0/var/lib/netctl/public && \
+    mkdir -p /tmp/netctl-1.0.0/etc/netctl && \
+    mkdir -p /tmp/netctl-1.0.0/etc/systemd/system && \
+    mkdir -p /tmp/netctl-1.0.0/var/log/netctl
+
+# Copy binaries
+RUN cp backend/target/release/netctl-daemon /tmp/netctl-1.0.0/usr/bin/netctl && \
+    cp backend/target/release/netctl-tui /tmp/netctl-1.0.0/usr/bin/ && \
+    cp backend/target/release/netctl-cli /tmp/netctl-1.0.0/usr/bin/ && \
+    chmod 755 /tmp/netctl-1.0.0/usr/bin/*
+
+# Copy frontend assets
+RUN cp -r frontend/dist/* /tmp/netctl-1.0.0/var/lib/netctl/public/ && \
+    chmod 644 /tmp/netctl-1.0.0/var/lib/netctl/public/*
+
+# Copy systemd service
+RUN cp packaging/systemd/netctl.service /tmp/netctl-1.0.0/etc/systemd/system/ || \
+    echo '[Unit]
+Description=NetCtl Network Management Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/netctl
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=netctl
+
+[Install]
+WantedBy=multi-user.target' > /tmp/netctl-1.0.0/etc/systemd/system/netctl.service
+
+# Create RPM build directory structure
+RUN mkdir -p /root/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
+
+# Create netctl.spec file
+RUN echo 'Name:           netctl
+Version:        1.0.0
+Release:        1%{?dist}
+Summary:        Network Control Engine - Advanced network management and QoS
+License:        MIT
+URL:            https://github.com/jerichofoster/NetCtl
+Source0:        netctl-1.0.0.tar.gz
+
+BuildRequires:  cargo, rust, llvm-devel, clang, npm
+Requires:       libc, openssl, dnsmasq
+Recommends:     kernel >= 5.8.0, kernel-devel
+
+%description
+NetCtl is a production-grade network management daemon with eBPF/XDP kernel-level QoS,
+transactional state management, comprehensive dashboard, and VLAN/DHCP support.
+
+%prep
+%setup -q
+
+%build
+cd backend && cargo build --release
+cd ../ebpf && cargo build --release
+cd ../frontend && npm ci && npm run build
+
+%install
+mkdir -p %{buildroot}/usr/bin
+mkdir -p %{buildroot}/var/lib/netctl/public
+mkdir -p %{buildroot}/etc/netctl
+mkdir -p %{buildroot}/etc/systemd/system
+mkdir -p %{buildroot}/var/log/netctl
+
+cp backend/target/release/netctl %{buildroot}/usr/bin/
+cp backend/target/release/netctl-tui %{buildroot}/usr/bin/
+chmod 755 %{buildroot}/usr/bin/netctl*
+cp -r frontend/dist/* %{buildroot}/var/lib/netctl/public/
+chmod 644 %{buildroot}/var/lib/netctl/public/*
+cp packaging/systemd/netctl.service %{buildroot}/etc/systemd/system/ 2>/dev/null || \
+    echo '"'"'[Unit]
+Description=NetCtl Network Management Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/netctl
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=netctl
+
+[Install]
+WantedBy=multi-user.target'"'"'' > %{buildroot}/etc/systemd/system/netctl.service
+
+%post
+systemctl daemon-reload
+systemctl enable netctl.service || true
+systemctl restart netctl.service || true
+
+%preun
+systemctl stop netctl.service || true
+
+%postun
+rm -rf /var/lib/netctl
+systemctl daemon-reload || true
+
+%files
+/usr/bin/netctl
+/usr/bin/netctl-tui
+/var/lib/netctl/public/*
+/etc/systemd/system/netctl.service
+%dir /var/log/netctl
+%dir /etc/netctl
+
+%changelog
+* Mon Apr 08 2026 Jericho Foster <jerichofoster@example.com> - 1.0.0-1
+- Initial release' > /root/rpmbuild/SPECS/netctl.spec
+
+# Create source tarball
+RUN cd /tmp && \
+    tar czf /root/rpmbuild/SOURCES/netctl-1.0.0.tar.gz -C /tmp netctl-1.0.0 && \
+    ls -lah /root/rpmbuild/SOURCES/
+
+# Build RPM
+RUN cd /root && \
+    rpmbuild -ba rpmbuild/SPECS/netctl.spec && \
+    ls -lah rpmbuild/RPMS/x86_64/
+
+# Output location
+RUN cp /root/rpmbuild/RPMS/x86_64/netctl-*.rpm /build/netctl-1.0.0-1.el8.x86_64.rpm && \
+    ls -lah /build/netctl-1.0.0-1.el8.x86_64.rpm
+
+CMD ["ls", "-lah", "/build/netctl-1.0.0-1.el8.x86_64.rpm"]

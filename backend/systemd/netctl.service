@@ -1,0 +1,51 @@
+[Unit]
+Description=NetCtl - Enterprise Network Control Daemon
+Documentation=https://github.com/yourusername/netctl
+Wants=network-online.target
+After=network-online.target
+ConditionVirtualization=!container
+
+[Service]
+Type=simple
+User=netctl
+Group=netctl
+WorkingDirectory=/opt/netctl
+
+# Service environment
+Environment="RUST_LOG=info"
+Environment="NETCTL_CONFIG=/etc/netctl/config.toml"
+EnvironmentFile=-/etc/netctl/netctl.env
+
+# Main process
+ExecStart=/usr/bin/netctl-daemon
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/netctl /var/lib/netctl /run/netctl
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=netctl
+SyslogFacility=daemon
+
+# Shutdown grace period
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

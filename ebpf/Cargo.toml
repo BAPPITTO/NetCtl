@@ -1,0 +1,12 @@
+[package]
+name = "netctl-ebpf"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+aya = { version = "0.11", features = ["async_tokio"] }
+aya-log = "0.2"
+
+[profile.release]
+lto = true
+opt-level = 3

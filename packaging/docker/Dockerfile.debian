@@ -1,0 +1,126 @@
+# Build NetCtl Debian/Ubuntu package
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    devscripts \
+    debhelper \
+    cargo \
+    rustc \
+    llvm-dev \
+    clang \
+    git \
+    curl \
+    npm \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy sources
+COPY . /build/
+
+# Build backend
+RUN cd backend && \
+    cargo build --release && \
+    ls -la target/release/netctl* && \
+    cargo test --release
+
+# Build eBPF
+RUN cd ebpf && cargo build --release
+
+# Build frontend
+RUN cd frontend && \
+    npm ci && \
+    npm run build && \
+    ls -la dist/
+
+# Create Debian package structure
+RUN mkdir -p /tmp/netctl-1.0.0/DEBIAN && \
+    mkdir -p /tmp/netctl-1.0.0/usr/bin && \
+    mkdir -p /tmp/netctl-1.0.0/var/lib/netctl/public && \
+    mkdir -p /tmp/netctl-1.0.0/etc/netctl && \
+    mkdir -p /tmp/netctl-1.0.0/etc/systemd/system && \
+    mkdir -p /tmp/netctl-1.0.0/var/log/netctl
+
+# Copy binaries
+RUN cp backend/target/release/netctl-daemon /tmp/netctl-1.0.0/usr/bin/netctl && \
+    cp backend/target/release/netctl-tui /tmp/netctl-1.0.0/usr/bin/ && \
+    cp backend/target/release/netctl-cli /tmp/netctl-1.0.0/usr/bin/ && \
+    chmod 755 /tmp/netctl-1.0.0/usr/bin/*
+
+# Copy frontend assets
+RUN cp -r frontend/dist/* /tmp/netctl-1.0.0/var/lib/netctl/public/ && \
+    chmod 644 /tmp/netctl-1.0.0/var/lib/netctl/public/*
+
+# Copy systemd service
+RUN cp packaging/systemd/netctl.service /tmp/netctl-1.0.0/etc/systemd/system/ || \
+    echo '[Unit]
+Description=NetCtl Network Management Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/netctl
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=netctl
+
+[Install]
+WantedBy=multi-user.target' > /tmp/netctl-1.0.0/etc/systemd/system/netctl.service
+
+# Create Debian control file
+RUN echo 'Package: netctl
+Version: 1.0.0-1
+Architecture: amd64
+Maintainer: Jericho Foster <jerichofoster@example.com>
+Homepage: https://github.com/jerichofoster/NetCtl
+Description: Network Control Engine - Advanced network management and QoS
+ NetCtl is a production-grade network management daemon with eBPF/XDP kernel-level QoS,
+ transactional state management, comprehensive dashboard, and VLAN/DHCP support.
+Depends: libc6 (>= 2.31), libssl3 (>= 3.0), dnsmasq
+Recommends: linux-headers, linux-image (>= 5.8)
+Priority: optional
+Section: net' > /tmp/netctl-1.0.0/DEBIAN/control
+
+# Create postinst script
+RUN echo '#!/bin/bash
+set -e
+# Enable and start service
+systemctl daemon-reload
+systemctl enable netctl.service || true
+systemctl restart netctl.service || true
+exit 0' > /tmp/netctl-1.0.0/DEBIAN/postinst && \
+    chmod 755 /tmp/netctl-1.0.0/DEBIAN/postinst
+
+# Create prerm script
+RUN echo '#!/bin/bash
+set -e
+# Stop service before removal
+systemctl stop netctl.service || true
+exit 0' > /tmp/netctl-1.0.0/DEBIAN/prerm && \
+    chmod 755 /tmp/netctl-1.0.0/DEBIAN/prerm
+
+# Create postrm script
+RUN echo '#!/bin/bash
+set -e
+# Cleanup after removal
+rm -rf /var/lib/netctl
+systemctl daemon-reload || true
+exit 0' > /tmp/netctl-1.0.0/DEBIAN/postrm && \
+    chmod 755 /tmp/netctl-1.0.0/DEBIAN/postrm
+
+# Build the .deb file
+RUN cd /tmp && \
+    dpkg-deb --build netctl-1.0.0 && \
+    ls -lah netctl-1.0.0.deb && \
+    dpkg-deb --info netctl-1.0.0.deb
+
+# Output location
+RUN cp /tmp/netctl-1.0.0.deb /build/netctl_1.0.0-1_amd64.deb
+
+CMD ["ls", "-lah", "/build/netctl_1.0.0-1_amd64.deb"]
