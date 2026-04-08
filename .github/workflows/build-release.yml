@@ -34,7 +34,9 @@ jobs:
             ruby \
             ruby-dev \
             llvm-dev \
-            clang
+            clang \
+            libelf-dev \
+            libzstd-dev
           sudo gem install --no-document fpm
       
       - name: Build backend
