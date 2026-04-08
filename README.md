@@ -322,7 +322,7 @@ SQLite Database Locked
 
 pkill netctl-daemon
 
-Frontend Won't Connect to Backend
+Frontend Will Not Connect to Backend
 
 curl http://localhost:3001/api/health
 # Check proxy config in vite.config.ts
