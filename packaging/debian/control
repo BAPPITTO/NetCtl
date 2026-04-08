@@ -1,0 +1,57 @@
+Source: netctl
+Section: net
+Priority: optional
+Maintainer: NetCtl Developers <admin@netctl.dev>
+Homepage: https://github.com/yourusername/netctl
+Vcs-Git: https://github.com/yourusername/netctl.git
+Vcs-Browser: https://github.com/yourusername/netctl
+Standards-Version: 4.6.2
+Rules-Requires-Root: binary-targets
+Build-Depends: 
+ debhelper-compat (= 13),
+ cargo,
+ rustc,
+ libssl-dev,
+ pkg-config,
+ npm,
+ python3
+
+Package: netctl
+Architecture: amd64 arm64 armhf ppc64el
+Depends: 
+ ${shlibs:Depends},
+ ${misc:Depends},
+ libudev1,
+ dnsmasq (>= 2.75),
+ systemd (>= 215),
+ adduser
+Suggests:
+ netctl-dashboard,
+ netctl-cli
+Provides: network-manager-alternative
+Description: Enterprise Network Control Daemon
+ NetCtl is a production-grade network management daemon with kernel-space
+ packet shaping capabilities for Linux systems.
+ .
+ Features:
+  * Real-time network flow tracking and visualization
+  * eBPF/XDP kernel-space traffic shaping
+  * Enterprise security with JWT and RBAC
+  * Live metrics and audit logging
+  * TUI setup wizard
+  * Web dashboard with LAN accessibility
+ .
+ Requires Linux kernel 5.8 or later with eBPF/XDP support.
+
+Package: netctl-cli
+Architecture: amd64 arm64 armhf ppc64el
+Depends: ${shlibs:Depends}, ${misc:Depends}, netctl (= ${binary:Version})
+Description: NetCtl Command-Line Interface
+ Command-line tools for managing NetCtl network control daemon.
+
+Package: netctl-dashboard
+Architecture: all
+Depends: ${misc:Depends}, netctl (>= ${source:Version})
+Description: NetCtl Web Dashboard
+ Web-based dashboard for monitoring and managing the NetCtl daemon.
+ Provides real-time network visualization, flow tracking, and configuration.

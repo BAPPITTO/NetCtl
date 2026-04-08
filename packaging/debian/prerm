@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    remove)
+        # Stop service if running
+        systemctl stop netctl || true
+
+        # Disable service
+        systemctl disable netctl || true
+
+        # Clean up runtime files but preserve configuration
+        rm -rf /var/run/netctl/* 2>/dev/null || true
+
+        echo "NetCtl service stopped. Configuration preserved in /etc/netctl"
+        ;;
+
+    upgrade|deconfigure)
+        # Stop service during upgrade
+        systemctl stop netctl || true
+        ;;
+
+    *)
+        echo "prerm called with unknown argument: $1" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -69,14 +69,80 @@ sudo apt-get install llvm llvm-dev libelf-dev
 
 ## Build
 
-### Automated Build (Recommended)
+### Automated Full Build (Recommended)
 
 ```bash
 cd /Users/jerichofoster/NetCtl
 bash build.sh
 ```
 
-The script will:
+This builds:
+1. Backend daemon (`netctl-daemon`)
+2. CLI tool (`netctl-cli`)
+3. **TUI setup wizard** (`netctl-tui`)
+4. Frontend dashboard
+5. eBPF XDP programs
+
+## Architecture
+
+```
+NetCtl Build Targets
+├── Backend
+│   ├── netctl-daemon      Main network control daemon
+│   ├── netctl-cli         Command-line interface tool
+│   └── netctl-tui         Interactive setup wizard (NEW)
+├── Frontend
+│   └── Dashboard          React web UI with LAN config (ENHANCED)
+└── Packages
+    ├── Debian (.deb)      Multi-package distribution (NEW)
+    ├── Red Hat (.rpm)     Enterprise packages (NEW)
+    └── Systemd service    Hardened service unit (NEW)
+```
+
+### Dependency Graph
+
+```
+Backend Dependencies:
+├── tokio (async runtime)
+├── axum (web framework)
+├── serde (serialization)
+├── rusqlite (database)
+├── libbpf-rs (eBPF integration)
+├── ratatui (TUI framework) - NEW
+├── crossterm (terminal) - NEW
+├── rcgen (certificates) - NEW
+└── x509-parser (cert parsing) - NEW
+
+Frontend Dependencies:
+├── react
+├── typescript
+├── vite
+├── recharts (graphing)
+└── axios (HTTP client)
+```
+
+## Troubleshooting
+
+### macOS Issues
+If on macOS and compilation fails:
+```bash
+# macOS doesn't support XDP/eBPF kernel modules
+# Skip eBPF compilation with feature flag
+cd backend
+cargo build --release --no-default-features
+```
+
+### Linux TUI Build Issues
+```bash
+# Ensure terminal is running on Linux with TTY support
+uname -s  # Should return 'Linux'
+tty      # Should show /dev/pts/X or /dev/ttyX
+```
+
+### Package Build Issues
+See [PACKAGING.md](PACKAGING.md) for distribution-specific troubleshooting.
+
+The prerequisite checks will:
 1. Verify Rust installation
 2. Verify Node.js installation
 3. Check LLVM availability

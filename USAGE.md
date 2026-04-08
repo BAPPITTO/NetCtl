@@ -2,6 +2,49 @@
 
 Practical guide to using NetCtl for network management and QoS control.
 
+## Initial Setup
+
+### Option 1: Interactive TUI Setup Wizard (NEW - Recommended)
+
+Run the interactive setup wizard on Linux:
+
+```bash
+cd /Users/jerichofoster/NetCtl/backend
+sudo cargo run --bin netctl-tui
+```
+
+The TUI guides you through 8 configuration steps:
+1. **Welcome** - Introduction and feature overview
+2. **Interface Selection** - Choose network interface (eth0, wlan0, etc.)
+3. **IP Configuration** - Set IP address, netmask, gateway
+4. **DNS Configuration** - Configure primary and secondary DNS
+5. **Dashboard Setup** - Configure hostname and admin credentials
+6. **Security Review** - Review security settings
+7. **Configuration Summary** - Verify all settings
+8. **Installation Complete** - Next steps
+
+**Navigation:**
+- Tab/Right Arrow: Next screen
+- Shift+Tab/Left Arrow: Previous screen
+- Enter: Confirm
+- Q/Esc: Back/Exit
+
+### Option 2: Package Installation (NEW)
+
+**On Ubuntu/Debian:**
+```bash
+sudo apt install ./netctl_1.0.0-1_amd64.deb
+sudo netctl-tui  # Run TUI setup
+sudo systemctl start netctl
+```
+
+**On CentOS/RHEL:**
+```bash
+sudo rpm -i netctl-1.0.0-1.el8.x86_64.rpm
+sudo netctl-tui  # Run TUI setup
+sudo systemctl start netctl
+```
+
 ## Starting Up
 
 ### Quick Start
@@ -58,6 +101,26 @@ Control bandwidth and blocking:
 - Block specific devices
 - Remove rules
 - View active rules
+
+### LAN Dashboard Configuration Tab (NEW)
+Configure web dashboard for LAN access:
+- **Hostname:** Set FQDN (e.g., netctl.local)
+- **Port:** Configure access port (default 443 for HTTPS)
+- **HTTPS:** Enable/disable SSL with self-signed certificates
+- **DNS Verification:** Test DNS resolution
+- **Loop Detection:** Prevents configuration errors
+
+**Configuration Steps:**
+1. Set desired hostname
+2. Optionally change port
+3. Toggle HTTPS (recommended)
+4. Click "Verify DNS Configuration"
+5. If DNS resolves correctly, click "Save Configuration"
+
+**DNS Loop Detection:**
+- Prevents hostname from resolving back to dashboard IP
+- Warns if misconfiguration detected
+- Suggests /etc/hosts entry as fallback
 
 ## Common Workflows
 
