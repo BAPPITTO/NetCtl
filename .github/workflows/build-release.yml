@@ -138,22 +138,20 @@ jobs:
 
   build-rpm:
     runs-on: ubuntu-22.04
-    container: rockylinux:8
     
     steps:
       - uses: actions/checkout@v4
       
       - name: Install dependencies
         run: |
-          yum install -y \
-            gcc \
-            make \
-            rpm-build \
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            rpm \
             cargo \
-            rust \
-            llvm-devel \
+            rustc \
+            llvm-dev \
             clang \
-            git \
             npm
       
       - name: Build backend
@@ -175,25 +173,28 @@ jobs:
       
       - name: Create RPM package
         run: |
-          mkdir -p /root/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
-          mkdir -p /tmp/netctl-1.0.0/usr/bin
-          mkdir -p /tmp/netctl-1.0.0/var/lib/netctl/public
-          mkdir -p /tmp/netctl-1.0.0/etc/netctl
-          mkdir -p /tmp/netctl-1.0.0/etc/systemd/system
-          mkdir -p /tmp/netctl-1.0.0/var/log/netctl
+          # Install fpm for easier RPM creation on Ubuntu
+          sudo apt-get install -y ruby ruby-dev
+          sudo gem install --no-document fpm
+          
+          mkdir -p /tmp/netctl-staging/usr/bin
+          mkdir -p /tmp/netctl-staging/var/lib/netctl/public
+          mkdir -p /tmp/netctl-staging/etc/netctl
+          mkdir -p /tmp/netctl-staging/etc/systemd/system
+          mkdir -p /tmp/netctl-staging/var/log/netctl
           
           # Copy binaries
-          cp backend/target/release/netctl-daemon /tmp/netctl-1.0.0/usr/bin/netctl
-          cp backend/target/release/netctl-tui /tmp/netctl-1.0.0/usr/bin/
-          cp backend/target/release/netctl-cli /tmp/netctl-1.0.0/usr/bin/
-          chmod 755 /tmp/netctl-1.0.0/usr/bin/*
+          cp backend/target/release/netctl-daemon /tmp/netctl-staging/usr/bin/netctl
+          cp backend/target/release/netctl-tui /tmp/netctl-staging/usr/bin/
+          cp backend/target/release/netctl-cli /tmp/netctl-staging/usr/bin/
+          chmod 755 /tmp/netctl-staging/usr/bin/*
           
           # Copy frontend
-          cp -r frontend/dist/* /tmp/netctl-1.0.0/var/lib/netctl/public/
-          chmod 644 /tmp/netctl-1.0.0/var/lib/netctl/public/*
+          cp -r frontend/dist/* /tmp/netctl-staging/var/lib/netctl/public/
+          chmod 644 /tmp/netctl-staging/var/lib/netctl/public/*
           
           # Create systemd service
-          cat > /tmp/netctl-1.0.0/etc/systemd/system/netctl.service << 'EOF'
+          cat > /tmp/netctl-staging/etc/systemd/system/netctl.service << 'EOF'
           [Unit]
           Description=NetCtl Network Management Daemon
           After=network.target
@@ -210,71 +211,35 @@ jobs:
           WantedBy=multi-user.target
           EOF
           
-          # Create spec file
-          cat > /root/rpmbuild/SPECS/netctl.spec << 'EOF'
-          Name:           netctl
-          Version:        1.0.0
-          Release:        1%{?dist}
-          Summary:        Network Control Engine - Advanced network management and QoS
-          License:        MIT
-          URL:            https://github.com/jerichofoster/NetCtl
-          
-          BuildRequires:  cargo, rust, llvm-devel, clang, npm
-          Requires:       libc, openssl, dnsmasq
-          Recommends:     kernel >= 5.8.0, kernel-devel
-          
-          %description
-          NetCtl is a production-grade network management daemon with eBPF/XDP kernel-level QoS,
-          transactional state management, comprehensive dashboard, and VLAN/DHCP support.
-          
-          %prep
-          
-          %build
-          
-          %install
-          mkdir -p %{buildroot}/usr/bin
-          mkdir -p %{buildroot}/var/lib/netctl/public
-          mkdir -p %{buildroot}/etc/netctl
-          mkdir -p %{buildroot}/etc/systemd/system
-          mkdir -p %{buildroot}/var/log/netctl
-          
-          cp /tmp/netctl-1.0.0/usr/bin/netctl %{buildroot}/usr/bin/
-          cp /tmp/netctl-1.0.0/usr/bin/netctl-tui %{buildroot}/usr/bin/
-          cp /tmp/netctl-1.0.0/usr/bin/netctl-cli %{buildroot}/usr/bin/
-          chmod 755 %{buildroot}/usr/bin/netctl*
-          cp -r /tmp/netctl-1.0.0/var/lib/netctl/public/* %{buildroot}/var/lib/netctl/public/
-          chmod 644 %{buildroot}/var/lib/netctl/public/*
-          cp /tmp/netctl-1.0.0/etc/systemd/system/netctl.service %{buildroot}/etc/systemd/system/
-          
-          %post
+          # Build RPM using fpm
+          fpm -s dir \
+            -t rpm \
+            -n netctl \
+            -v 1.0.0 \
+            --iteration 1 \
+            -p netctl-1.0.0-1.el8.x86_64.rpm \
+            -d "dnsmasq" \
+            --after-install <<'SCRIPT'
+          #!/bin/bash
           systemctl daemon-reload
           systemctl enable netctl.service || true
           systemctl restart netctl.service || true
-          
-          %preun
+          SCRIPT \
+            --before-remove <<'SCRIPT'
+          #!/bin/bash
           systemctl stop netctl.service || true
-          
-          %postun
+          SCRIPT \
+            --after-remove <<'SCRIPT'
+          #!/bin/bash
           rm -rf /var/lib/netctl
           systemctl daemon-reload || true
+          SCRIPT \
+            -C /tmp/netctl-staging \
+            -a x86_64 \
+            -m "Jericho Foster <jerichofoster@example.com>" \
+            --url "https://github.com/jerichofoster/NetCtl" \
+            --description "Network Control Engine - Advanced network management and QoS"
           
-          %files
-          /usr/bin/netctl
-          /usr/bin/netctl-tui
-          /var/lib/netctl/public/*
-          /etc/systemd/system/netctl.service
-          %dir /var/log/netctl
-          %dir /etc/netctl
-          
-          %changelog
-          * Mon Apr 08 2026 Jericho Foster <jerichofoster@example.com> - 1.0.0-1
-          - Initial release
-          EOF
-          
-          # Build RPM
-          tar czf /root/rpmbuild/SOURCES/netctl-1.0.0.tar.gz -C /tmp netctl-1.0.0
-          rpmbuild -ba /root/rpmbuild/SPECS/netctl.spec
-          cp /root/rpmbuild/RPMS/x86_64/netctl-*.rpm ./netctl-1.0.0-1.el8.x86_64.rpm
           ls -lah netctl-1.0.0-1.el8.x86_64.rpm
       
       - name: Upload RPM package artifact
