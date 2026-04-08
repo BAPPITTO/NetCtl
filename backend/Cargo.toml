@@ -30,8 +30,6 @@ rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
 tokio-rusqlite = "0.5"
 chrono.workspace = true
 uuid.workspace = true
-libbpf-rs.workspace = true
-aya.workspace = true
 plain.workspace = true
 
 tower = "0.4"

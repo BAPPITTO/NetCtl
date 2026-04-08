@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Configure Git
+        run: |
+          git config --global user.email "ci@netctl.local"
+          git config --global user.name "NetCtl CI"
+          git config --global --add safe.directory "*"
+      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -51,12 +57,13 @@ jobs:
           npm ci
           npm run build
       
-      - name: Build eBPF (if exists)
+      - name: Build eBPF (optional - skip if issues)
         run: |
           if [ -d "ebpf" ]; then
             cd ebpf
-            cargo build --release 2>&1 || echo "eBPF build skipped"
+            cargo build --release 2>&1 || echo "⚠️ eBPF build failed but continuing (optional component)"
           fi
+        continue-on-error: true
       
       - name: Create Debian package
         run: |
