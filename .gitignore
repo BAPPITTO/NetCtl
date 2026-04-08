@@ -1,0 +1,38 @@
+# Rust
+target/
+Cargo.lock
+*.o
+*.a
+*.so
+
+# Node.js / Frontend
+node_modules/
+dist/
+.env.local
+.env.*.local
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# eBPF outputs
+backend/ebpf/output/
+backend/ebpf/*.o
+backend/ebpf/vmlinux.h

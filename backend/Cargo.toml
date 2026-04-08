@@ -1,0 +1,54 @@
+[package]
+name = "netctl"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "netctl-daemon"
+path = "src/main.rs"
+
+[[bin]]
+name = "netctl-cli"
+path = "src/bin/cli.rs"
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
+tokio-rusqlite = "0.5"
+chrono.workspace = true
+uuid.workspace = true
+libbpf-rs.workspace = true
+aya.workspace = true
+plain.workspace = true
+
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+futures = "0.3"
+bytes = "1.5"
+hyper = "1.0"
+regex = "1.10"
+reqwest = { version = "0.11", features = ["json"] }
+clap = { version = "4.4", features = ["derive"] }
+env_logger = "0.11"
+log = "0.4"
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[lib]
+name = "netctl"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
