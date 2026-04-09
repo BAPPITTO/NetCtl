@@ -1,3 +1,4 @@
+
 # NetCtl - Advanced Network Control Engine
 
 A production-grade network management daemon built in Rust with a TypeScript/React dashboard. NetCtl provides transactional state management, idempotent VLAN/DHCP configuration, eBPF/XDP kernel-level QoS, and live metrics streaming.
@@ -8,102 +9,100 @@ A production-grade network management daemon built in Rust with a TypeScript/Rea
 
 ### 🖥️ Interactive Setup
 
-- **TUI Setup Wizard:** Matrix-style terminal configuration with Ratatui framework  
-- **8-Screen Configuration Flow:** Network, DNS, dashboard, and admin setup  
-- **Real-time Validation:** IPv4, hostname, and DNS verification during setup  
-- **LAN Dashboard Configuration:** Hostname, DNS verification, HTTPS support  
-- **DNS Loop Detection:** Prevents configuration errors and circular dependencies  
+- **TUI Setup Wizard** - Matrix-style terminal configuration with Ratatui framework
+- **8-Screen Configuration Flow** - Network, DNS, dashboard, and admin setup
+- **Real-time Validation** - IPv4, hostname, and DNS verification during setup
+- **LAN Dashboard Configuration** - Hostname, DNS verification, HTTPS support
+- **DNS Loop Detection** - Prevents configuration errors and circular dependencies
 
 ### 🧠 Core Architecture
 
-- **Transactional State Management:** Every network change is reversible with full rollback  
-- **Idempotent Configuration:** Safe to reapply changes without duplication  
-- **Persistent State:** SQLite-backed state with versioning support  
-- **Async Event-Driven:** Tokio-based non-blocking networking control  
+- **Transactional State Management** - Every network change is reversible with full rollback
+- **Idempotent Configuration** - Safe to reapply changes without duplication
+- **Persistent State** - SQLite-backed state with versioning support
+- **Async Event-Driven** - Tokio-based non-blocking networking control
 
 ### 🌐 Network Management
 
-- **Interface Detection:** Automatic WAN/LAN interface detection  
-- **Multi-Interface Support:** Manages multiple NICs cleanly  
-- **IPv4 Forwarding Control:** Safe enablement/disablement  
-- **Link State Monitoring:** Real-time interface health tracking  
+- **Interface Detection** - Automatic WAN/LAN interface detection
+- **Multi-Interface Support** - Manages multiple NICs cleanly
+- **IPv4 Forwarding Control** - Safe enablement/disablement
+- **Link State Monitoring** - Real-time interface health tracking
 
 ### 🧩 VLAN System
 
-- **Dynamic VLAN Creation:** 802.1Q tagging support  
-- **Per-VLAN Provisioning:** Automatic interface creation (eth0.10, etc.)  
-- **Subnet Assignment:** CIDR notation support  
-- **VLAN Isolation:** Complete traffic separation  
-- **DHCP Per-VLAN:** Independent DHCP scopes  
+- **Dynamic VLAN Creation** - 802.1Q tagging support
+- **Per-VLAN Provisioning** - Automatic interface creation (eth0.10, etc.)
+- **Subnet Assignment** - CIDR notation support
+- **VLAN Isolation** - Complete traffic separation
+- **DHCP Per-VLAN** - Independent DHCP scopes
 
 ### 📡 DHCP Management
 
-- **Automatic Config Generation:** dnsmasq-backed DHCP  
-- **Dynamic Lease Allocation:** Range calculation from subnet  
-- **DHCP Service Management:** Automatic start/stop/restart  
-- **Conflict Avoidance:** Detection of existing DHCP services  
+- **Automatic Config Generation** - dnsmasq-backed DHCP
+- **Dynamic Lease Allocation** - Range calculation from subnet
+- **DHCP Service Management** - Automatic start/stop/restart
+- **Conflict Avoidance** - Detection of existing DHCP services
 
 ### ⚡ QoS & Traffic Control
 
-- **Per-Device Rate Limiting:** Bandwidth allocation by MAC  
-- **Per-Device Blocking:** Instant packet drop  
-- **eBPF/XDP Enforcement:** Kernel-space zero-copy filtering  
-- **Real-Time Updates:** No restart required  
-- **Device Prioritization:** Extendable priority system  
+- **Per-Device Rate Limiting** - Bandwidth allocation by MAC
+- **Per-Device Blocking** - Instant packet drop
+- **eBPF/XDP Enforcement** - Kernel-space zero-copy filtering
+- **Real-Time Updates** - No restart required
+- **Device Prioritization** - Extendable priority system
 
 ### 📊 Live Metrics & Telemetry
 
-- **Real-Time Streaming:** SSE-based live updates  
-- **Per-Device Statistics:** Traffic visibility  
-- **Packet Counters:** Kernel map exposure  
-- **Live Dashboard:** No refresh required  
+- **Real-Time Streaming** - SSE-based live updates
+- **Per-Device Statistics** - Traffic visibility
+- **Packet Counters** - Kernel map exposure
+- **Live Dashboard** - No refresh required
 
 ### 🖥️ Matrix Cyberpunk Dashboard
 
-- **Cyberpunk Aesthetic:** Green-on-black Matrix theme  
-- **Live Device Stats:** Real-time traffic visibility  
-- **Inline Editing:** Modify devices and VLANs on-the-fly  
-- **Responsive Design:** Desktop and mobile support  
-- **Background Animation:** Matrix rain effect  
+- **Cyberpunk Aesthetic** - Green-on-black Matrix theme
+- **Live Device Stats** - Real-time traffic visibility
+- **Inline Editing** - Modify devices and VLANs on-the-fly
+- **Responsive Design** - Desktop and mobile support
+- **Background Animation** - Matrix rain effect
 
 ### 🔌 RESTful API
 
-- **State Retrieval:** Full system state endpoint  
-- **VLAN Management:** Create, read, delete VLANs  
-- **Device Management:** Add/remove devices  
-- **QoS Control:** Set and remove rate limits  
-- **Metrics Streaming:** SSE endpoint for live data  
-- **WoL Integration:** Wake-on-LAN triggers  
-- **DNS Verification:** Async DNS resolution with loop detection  
-- **Dashboard Configuration:** LAN hostname and HTTPS settings  
-- **Certificate Management:** Self-signed cert generation and validation  
+- **State Retrieval** - Full system state endpoint
+- **VLAN Management** - Create, read, delete VLANs
+- **Device Management** - Add/remove devices
+- **QoS Control** - Set and remove rate limits
+- **Metrics Streaming** - SSE endpoint for live data
+- **WoL Integration** - Wake-on-LAN triggers
+- **DNS Verification** - Async DNS resolution with loop detection
+- **Dashboard Configuration** - LAN hostname and HTTPS settings
+- **Certificate Management** - Self-signed cert generation and validation
 
 ### 📦 Enterprise Deployment
 
-- **Debian Packages:** .deb packages for Ubuntu/Debian systems  
-- **Red Hat Packages:** .rpm packages for CentOS/RHEL/Fedora  
-- **Systemd Integration:** Hardened service unit with security constraints  
-- **Multi-Package Split:** Separate daemon, CLI, and dashboard packages  
-- **Automated Build:** Single-command package generation script  
+- **Debian Packages** - .deb packages for Ubuntu/Debian systems
+- **Red Hat Packages** - .rpm packages for CentOS/RHEL/Fedora
+- **Systemd Integration** - Hardened service unit with security constraints
+- **Multi-Package Split** - Separate daemon, CLI, and dashboard packages
+- **Automated Build** - Single-command package generation script
 
 ### 🔄 Transaction & Rollback
 
-- **Ordered Operations:** Sequential execution order  
-- **Failure Detection:** Mid-apply error handling  
-- **Reverse Rollback:** Automatic undo on failure  
-- **Partial Recovery:** Graceful state recovery  
-- **Operation Isolation:** Each change is independent  
-
----
+- **Ordered Operations** - Sequential execution order
+- **Failure Detection** - Mid-apply error handling
+- **Reverse Rollback** - Automatic undo on failure
+- **Partial Recovery** - Graceful state recovery
+- **Operation Isolation** - Each change is independent
 
 ## Quick Start
 
 ### Prerequisites
 
-- Linux kernel 5.8+ (for XDP support)  
-- Rust 1.70+ (for backend compilation)  
-- Node.js 18+ (for frontend)  
-- LLVM tools (for eBPF compilation)  
+- Linux kernel 5.8+ (for XDP support)
+- Rust 1.70+ (for backend compilation)
+- Node.js 18+ (for frontend)
+- LLVM tools (for eBPF compilation)
 
 ### Build Backend
 
@@ -333,12 +332,11 @@ ethtool -i <interface> | grep -i driver
 SQLite Database Locked
 
 pkill netctl-daemon
+```
 
-Frontend Won't Connect to Backend
+curl <http://localhost:3001/api/health>
 
-curl http://localhost:3001/api/health
-# Check proxy config in vite.config.ts
-
+## Check proxy config in vite.config.ts
 
 ---
 
@@ -362,14 +360,11 @@ Audit Logging: Detailed operation history
 
 CLI Expansion: Remote operation support
 
-
-
 ---
 
 License
 
 MIT License - See LICENSE file
-
 
 ---
 
@@ -385,8 +380,6 @@ New features include documentation
 
 Security implications are considered
 
-
-
 ---
 
 Support
@@ -399,13 +392,11 @@ Test in isolated environment first
 
 Never run on production networks without testing
 
-
-
 ---
 
 Architecture Diagram
 
-Browser (React Dashboard) -> http://localhost:5173
+Browser (React Dashboard) -> <http://localhost:5173>
              │ HTTP/SSE
              ▼
         Axum API Server (Port 3001)
@@ -423,6 +414,5 @@ SQLite DB Transactional State Engine eBPF/XDP Kernel QoS
      Network Operations (ip, sysctl, etc)
              │
          Linux Kernel (VLAN, DHCP, QoS)
-
 
 ---
