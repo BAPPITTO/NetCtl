@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use uuid::Uuid;
 use std::collections::HashMap;
 use crate::error::{Error, Result};
 
-/// Represents a network device (e.g., a VLAN member or managed host)
+/// Represents a network device (e.g., VLAN member or managed host)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Device {
     pub id: String,
@@ -17,21 +17,21 @@ pub struct Device {
     pub last_seen: Option<String>,
 }
 
-/// Represents a VLAN configuration
+/// VLAN configuration
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Vlan {
     pub id: u16,
     pub name: String,
-    pub subnet: String,  // e.g., "192.168.10.0/24"
-    pub gateway: String, // e.g., "192.168.10.1"
+    pub subnet: String,
+    pub gateway: String,
     pub dhcp_enabled: bool,
     pub dhcp_start: String,
     pub dhcp_end: String,
-    pub interface: String, // e.g., "eth0.10"
+    pub interface: String,
     pub created_at: String,
 }
 
-/// Represents DHCP scope configuration
+/// DHCP scope configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DhcpScope {
     pub vlan_id: u16,
@@ -41,7 +41,7 @@ pub struct DhcpScope {
     pub lease_time: u32,
 }
 
-/// Represents a network operation (reversible)
+/// Network operation (reversible)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NetOp {
     CreateVlan { vlan_id: u16, subnet: String, gateway: String },
@@ -58,31 +58,26 @@ pub enum NetOp {
 }
 
 impl NetOp {
-    /// Generate the reverse operation for rollback
+    /// Generate reverse operation for rollback
     pub fn reverse(&self) -> Result<NetOp> {
+        use NetOp::*;
         match self {
-            NetOp::CreateVlan { vlan_id, .. } => Ok(NetOp::DeleteVlan { vlan_id: *vlan_id }),
-            NetOp::DeleteVlan { vlan_id } => {
-                Err(Error::StateError("Cannot auto-reverse DeleteVlan".to_string()))
-            }
-            NetOp::ConfigureInterface { .. } => {
-                Err(Error::StateError("Cannot auto-reverse ConfigureInterface".to_string()))
-            }
-            NetOp::StartDhcp { vlan_id } => Ok(NetOp::StopDhcp { vlan_id: *vlan_id }),
-            NetOp::StopDhcp { vlan_id } => Ok(NetOp::StartDhcp { vlan_id: *vlan_id }),
-            NetOp::SetFwdEnable => Ok(NetOp::SetFwdDisable),
-            NetOp::SetFwdDisable => Ok(NetOp::SetFwdEnable),
-            NetOp::SetQosRule { mac, .. } => Ok(NetOp::RemoveQosRule { mac: mac.clone() }),
-            NetOp::RemoveQosRule { mac } => {
-                Err(Error::StateError(format!("Cannot auto-reverse RemoveQosRule for {}", mac)))
-            }
-            NetOp::AttachXdp { interface } => Ok(NetOp::DetachXdp { interface: interface.clone() }),
-            NetOp::DetachXdp { interface } => Ok(NetOp::AttachXdp { interface: interface.clone() }),
+            CreateVlan { vlan_id, .. } => Ok(DeleteVlan { vlan_id: *vlan_id }),
+            DeleteVlan { vlan_id } => Err(Error::StateError("Cannot auto-reverse DeleteVlan".into())),
+            ConfigureInterface { .. } => Err(Error::StateError("Cannot auto-reverse ConfigureInterface".into())),
+            StartDhcp { vlan_id } => Ok(StopDhcp { vlan_id: *vlan_id }),
+            StopDhcp { vlan_id } => Ok(StartDhcp { vlan_id: *vlan_id }),
+            SetFwdEnable => Ok(SetFwdDisable),
+            SetFwdDisable => Ok(SetFwdEnable),
+            SetQosRule { mac, .. } => Ok(RemoveQosRule { mac: mac.clone() }),
+            RemoveQosRule { mac } => Err(Error::StateError(format!("Cannot auto-reverse RemoveQosRule for {}", mac))),
+            AttachXdp { interface } => Ok(DetachXdp { interface: interface.clone() }),
+            DetachXdp { interface } => Ok(AttachXdp { interface: interface.clone() }),
         }
     }
 }
 
-/// Represents a transaction with ordered operations and rollback stack
+/// Transaction with ordered operations and rollback stack
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub id: String,
@@ -105,28 +100,17 @@ impl Transaction {
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
-            operations: Vec::new(),
-            rollback_stack: Vec::new(),
+            operations: vec![],
+            rollback_stack: vec![],
             status: TransactionStatus::Pending,
             created_at: Utc::now().to_rfc3339(),
         }
     }
 
-    pub fn add_operation(&mut self, op: NetOp) {
-        self.operations.push(op);
-    }
-
-    pub fn mark_applied(&mut self) {
-        self.status = TransactionStatus::Applied;
-    }
-
-    pub fn mark_failed(&mut self, reason: String) {
-        self.status = TransactionStatus::Failed(reason);
-    }
-
-    pub fn mark_rolled_back(&mut self) {
-        self.status = TransactionStatus::RolledBack;
-    }
+    pub fn add_operation(&mut self, op: NetOp) { self.operations.push(op); }
+    pub fn mark_applied(&mut self) { self.status = TransactionStatus::Applied; }
+    pub fn mark_failed(&mut self, reason: String) { self.status = TransactionStatus::Failed(reason); }
+    pub fn mark_rolled_back(&mut self) { self.status = TransactionStatus::RolledBack; }
 }
 
 /// Complete system state
@@ -151,7 +135,7 @@ impl Default for SystemState {
             vlans: HashMap::new(),
             dhcp_scopes: HashMap::new(),
             ipv4_forwarding_enabled: false,
-            xdp_attached_interfaces: Vec::new(),
+            xdp_attached_interfaces: vec![],
             qos_rules: HashMap::new(),
             last_transaction_id: None,
             updated_at: Utc::now().to_rfc3339(),
@@ -160,26 +144,24 @@ impl Default for SystemState {
 }
 
 impl SystemState {
-    pub fn new() -> Self {
-        Self::default()
-    }
+    pub fn new() -> Self { Self::default() }
 
     pub fn add_device(&mut self, device: Device) -> Result<()> {
         self.devices.insert(device.id.clone(), device);
-        self.updated_at = Utc::now().to_rfc3339();
+        self.update_timestamp();
         Ok(())
     }
 
     pub fn add_vlan(&mut self, vlan: Vlan) -> Result<()> {
         self.vlans.insert(vlan.id, vlan);
-        self.updated_at = Utc::now().to_rfc3339();
+        self.update_timestamp();
         Ok(())
     }
 
     pub fn remove_vlan(&mut self, vlan_id: u16) -> Result<()> {
         self.vlans.remove(&vlan_id);
         self.dhcp_scopes.remove(&vlan_id);
-        self.updated_at = Utc::now().to_rfc3339();
+        self.update_timestamp();
         Ok(())
     }
 

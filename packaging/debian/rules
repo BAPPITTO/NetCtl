@@ -3,52 +3,58 @@
 
 include /usr/share/dpkg/default.mk
 
+# Use all available cores for building
 export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
 export CARGO_HOME=$(CURDIR)/debian/.cargo
 
+# Default target
 %:
-	dh $@ --buildsystem=cargo
+ dh $@ --buildsystem=cargo
 
 override_dh_auto_build:
-	cd backend && cargo build --release --lib --bin netctl-daemon --bin netctl-cli --bin netctl-tui
-	cd frontend && npm install && npm run build
+ # Build backend Rust binaries
+ cd backend && cargo build --release --lib --bin netctl-daemon --bin netctl-cli --bin netctl-tui
+
+ # Build frontend dashboard
+ cd frontend && npm install && npm run build
 
 override_dh_auto_test:
-	cd backend && cargo test --release --lib
+ # Run Rust tests only
+ cd backend && cargo test --release --lib
 
 override_dh_auto_install:
-	# Binary installation
-	dh_auto_install
-	mkdir -p debian/netctl/usr/bin
-	install -m 0755 backend/target/release/netctl-daemon debian/netctl/usr/bin/
-	install -m 0755 backend/target/release/netctl-cli debian/netctl/usr/bin/
-	install -m 0755 backend/target/release/netctl-tui debian/netctl/usr/bin/
-	
-	# Dashboard installation (frontend)
-	mkdir -p debian/netctl-dashboard/usr/share/netctl/dashboard
-	cp -r frontend/dist/* debian/netctl-dashboard/usr/share/netctl/dashboard/
-	
-	# Systemd service
-	mkdir -p debian/netctl/etc/systemd/system
-	install -m 0644 backend/systemd/netctl.service debian/netctl/etc/systemd/system/
-	
-	# Configuration directory
-	mkdir -p debian/netctl/etc/netctl
-	mkdir -p debian/netctl/var/lib/netctl
-	mkdir -p debian/netctl/var/log/netctl
-	mkdir -p debian/netctl/var/run/netctl
-	
-	# Documentation
-	mkdir -p debian/netctl/usr/share/doc/netctl
-	install -m 0644 README.md debian/netctl/usr/share/doc/netctl/
-	install -m 0644 API.md debian/netctl/usr/share/doc/netctl/
-	install -m 0644 USAGE.md debian/netctl/usr/share/doc/netctl/
+ # Install binaries
+ dh_auto_install
+ mkdir -p debian/netctl/usr/bin
+ install -m 0755 backend/target/release/netctl-daemon debian/netctl/usr/bin/
+ install -m 0755 backend/target/release/netctl-cli debian/netctl/usr/bin/
+ install -m 0755 backend/target/release/netctl-tui debian/netctl/usr/bin/
+
+ # Install frontend dashboard
+ mkdir -p debian/netctl-dashboard/usr/share/netctl/dashboard
+ cp -r frontend/dist/* debian/netctl-dashboard/usr/share/netctl/dashboard/
+
+ # Install systemd service
+ mkdir -p debian/netctl/etc/systemd/system
+ install -m 0644 backend/systemd/netctl.service debian/netctl/etc/systemd/system/
+
+ # Create configuration and runtime directories
+ mkdir -p debian/netctl/etc/netctl
+ mkdir -p debian/netctl/var/lib/netctl
+ mkdir -p debian/netctl/var/log/netctl
+ mkdir -p debian/netctl/var/run/netctl
+
+ # Install documentation
+ mkdir -p debian/netctl/usr/share/doc/netctl
+ install -m 0644 README.md debian/netctl/usr/share/doc/netctl/
+ install -m 0644 API.md debian/netctl/usr/share/doc/netctl/
+ install -m 0644 USAGE.md debian/netctl/usr/share/doc/netctl/
 
 override_dh_installdocs:
-	dh_installdocs --all README.md
+ dh_installdocs --all README.md API.md USAGE.md
 
 override_dh_installsystemd:
-	dh_installsystemd --name=netctl --no-start
+ dh_installsystemd --name=netctl --no-start
 
 override_dh_strip:
-	dh_strip --no-automatic-dbgsym
+ dh_strip --no-automatic-dbgsym

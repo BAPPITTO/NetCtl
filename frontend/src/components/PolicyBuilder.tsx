@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 interface PolicyRule {
   id: string;
   name: string;
   priority: number;
   match_criteria: string;
-  action: string;
+  action: 'allow' | 'block' | 'rate_limit' | 'shape';
 }
 
 interface PolicyBuilderProps {
@@ -13,264 +13,129 @@ interface PolicyBuilderProps {
   onPolicySaved?: (policy: PolicyRule) => void;
 }
 
-const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ 
+const PolicyBuilder: React.FC<PolicyBuilderProps> = ({
   apiUrl = 'http://localhost:3001',
-  onPolicySaved 
+  onPolicySaved,
 }) => {
   const [policies, setPolicies] = useState<PolicyRule[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<PolicyRule, 'id'>>({
     name: '',
     priority: 100,
     match_criteria: '',
     action: 'allow',
   });
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'priority' ? parseInt(value) || 0 : value,
-    }));
-  }, []);
+  const [formErrors, setFormErrors] = useState<{ name?: string; priority?: string; match_criteria?: string }>({});
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name || !formData.match_criteria) {
-      setError('Policy name and match criteria are required');
-      return;
-    }
+  // --- live validation ---
+  useEffect(() => {
+    const errors: typeof formErrors = {};
+    if (!formData.name.trim()) errors.name = 'Name is required';
+    if (!formData.match_criteria.trim()) errors.match_criteria = 'Match criteria is required';
+    if (formData.priority < 0 || formData.priority > 1000) errors.priority = 'Priority must be 0-1000';
+    setFormErrors(errors);
+  }, [formData]);
+
+  const updateForm = useCallback(
+    (field: keyof typeof formData, value: string | number) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: field === 'priority' ? Number(value) : value,
+      }));
+    },
+    []
+  );
+
+  const createPolicy = useCallback(async () => {
+    if (Object.keys(formErrors).length > 0) return;
+    setLoading(true);
 
     try {
-      setLoading(true);
       const response = await fetch(`${apiUrl}/api/policies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
 
-      if (data.success) {
-        const newPolicy: PolicyRule = {
-          id: data.data?.policy_id || `policy_${Date.now()}`,
-          ...formData,
-        };
+      const newPolicy: PolicyRule = {
+        id: data.data?.policy_id || `policy_${Date.now()}`,
+        ...formData,
+      };
 
-        setPolicies(prev => [...prev, newPolicy]);
+      if (data.success) {
+        setPolicies((prev) => [...prev, newPolicy]);
         setFormData({ name: '', priority: 100, match_criteria: '', action: 'allow' });
         setShowForm(false);
-        setError(null);
-
-        if (onPolicySaved) {
-          onPolicySaved(newPolicy);
-        }
-      } else {
-        setError(data.error || 'Failed to create policy');
+        onPolicySaved?.(newPolicy);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Failed to create policy', err);
     } finally {
       setLoading(false);
     }
-  }, [formData, apiUrl, onPolicySaved]);
+  }, [formData, formErrors, apiUrl, onPolicySaved]);
 
-  const handleDelete = useCallback(async (policyId: string) => {
-    try {
-      const response = await fetch(`${apiUrl}/api/policies/${policyId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setPolicies(prev => prev.filter(p => p.id !== policyId));
+  const deletePolicy = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(`${apiUrl}/api/policies/${id}`, { method: 'DELETE' });
+        if (response.ok) setPolicies((prev) => prev.filter((p) => p.id !== id));
+      } catch (err) {
+        console.error('Failed to delete policy', err);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete policy');
+    },
+    [apiUrl]
+  );
+
+  const actionColor = (action: PolicyRule['action']) => {
+    switch (action) {
+      case 'allow':
+        return '#00ff00';
+      case 'block':
+        return '#ff0000';
+      case 'rate_limit':
+        return '#ffff00';
+      case 'shape':
+        return '#00ffff';
+      default:
+        return '#ffffff';
     }
-  }, [apiUrl]);
+  };
+
+  const inputBorder = (field: keyof typeof formErrors) =>
+    formErrors[field] ? '1px solid #ff0000' : '1px solid #00ff00';
 
   return (
     <div className="policy-builder">
       <style>{`
-        .policy-builder {
-          padding: 20px;
-          background: rgba(255, 0, 255, 0.05);
-          border: 1px solid rgba(255, 0, 255, 0.2);
-          border-radius: 4px;
-          margin: 10px 0;
-        }
-
-        .policy-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #ff00ff;
-          font-weight: bold;
-          margin-bottom: 15px;
-          text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-        }
-
-        .policy-btn {
-          background: rgba(255, 0, 255, 0.2);
-          border: 1px solid rgba(255, 0, 255, 0.4);
-          color: #ff00ff;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-family: monospace;
-          transition: all 0.3s;
-        }
-
-        .policy-btn:hover {
-          background: rgba(255, 0, 255, 0.3);
-          border-color: rgba(255, 0, 255, 0.6);
-          box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-        }
-
-        .policy-form {
-          background: rgba(255, 0, 255, 0.08);
-          border: 1px solid rgba(255, 0, 255, 0.2);
-          padding: 15px;
-          border-radius: 4px;
-          margin-bottom: 15px;
-        }
-
-        .form-group {
-          margin-bottom: 12px;
-        }
-
-        .form-label {
-          display: block;
-          color: #ff00ff;
-          font-weight: bold;
-          margin-bottom: 5px;
-          font-size: 0.9em;
-        }
-
-        .form-input,
-        .form-textarea,
-        .form-select {
-          width: 100%;
-          padding: 8px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 0, 255, 0.3);
-          color: #ff00ff;
-          border-radius: 4px;
-          font-family: monospace;
-          box-sizing: border-box;
-        }
-
-        .form-textarea {
-          resize: vertical;
-          min-height: 60px;
-          font-family: monospace;
-        }
-
-        .form-input:focus,
-        .form-textarea:focus,
-        .form-select:focus {
-          outline: none;
-          border-color: rgba(255, 0, 255, 0.6);
-          box-shadow: 0 0 10px rgba(255, 0, 255, 0.2);
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 15px;
-        }
-
-        .form-actions button {
-          flex: 1;
-          padding: 10px;
-          background: rgba(255, 0, 255, 0.2);
-          border: 1px solid rgba(255, 0, 255, 0.4);
-          color: #ff00ff;
-          border-radius: 4px;
-          cursor: pointer;
-          font-family: monospace;
-          transition: all 0.3s;
-        }
-
-        .form-actions button:hover:not(:disabled) {
-          background: rgba(255, 0, 255, 0.3);
-          box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-        }
-
-        .form-actions button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .policy-list {
-          margin-top: 15px;
-        }
-
-        .policy-item {
-          background: rgba(255, 0, 255, 0.08);
-          border-left: 3px solid rgba(255, 0, 255, 0.4);
-          padding: 12px;
-          margin: 8px 0;
-          border-radius: 4px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #ff00ff;
-          font-family: monospace;
-        }
-
-        .policy-item-info {
-          flex: 1;
-        }
-
-        .policy-name {
-          font-weight: bold;
-          margin-bottom: 5px;
-        }
-
-        .policy-details {
-          font-size: 0.8em;
-          opacity: 0.8;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 10px;
-        }
-
-        .policy-delete-btn {
-          background: rgba(255, 0, 0, 0.2);
-          border: 1px solid rgba(255, 0, 0, 0.4);
-          color: #ff0000;
-          padding: 6px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          margin-left: 10px;
-          transition: all 0.3s;
-        }
-
-        .policy-delete-btn:hover {
-          background: rgba(255, 0, 0, 0.3);
-          box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
-        }
-
-        .error {
-          background: rgba(255, 0, 0, 0.1);
-          border: 1px solid rgba(255, 0, 0, 0.3);
-          color: #ff0000;
-          padding: 10px;
-          border-radius: 4px;
-          margin-bottom: 15px;
-        }
-
-        .empty-state {
-          color: rgba(255, 0, 255, 0.5);
-          text-align: center;
-          padding: 20px;
-          font-style: italic;
-        }
+        .policy-builder { padding:20px; background:#010101; border:1px solid #00ff0033; border-radius:6px; color:#00ff00; font-family:monospace; }
+        .policy-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-weight:bold; }
+        .policy-btn { background:#00ff0022; border:1px solid #00ff0044; padding:8px 16px; border-radius:4px; cursor:pointer; transition:.2s; }
+        .policy-btn:hover { background:#00ff0033; box-shadow:0 0 12px #00ff0055; }
+        .policy-form { background:#002200; border:1px solid #00ff0033; padding:15px; border-radius:6px; margin-bottom:15px; }
+        .form-group { margin-bottom:12px; }
+        .form-label { display:block; margin-bottom:5px; font-weight:bold; }
+        .form-input, .form-textarea, .form-select { width:100%; padding:8px; border-radius:4px; color:#00ff00; background:#001100; font-family:monospace; box-sizing:border-box; }
+        .form-textarea { min-height:60px; resize:vertical; }
+        .form-actions { display:flex; gap:10px; margin-top:12px; }
+        .form-actions button { flex:1; padding:10px; background:#00ff0022; border:1px solid #00ff0044; cursor:pointer; transition:.2s; }
+        .form-actions button:hover:not(:disabled) { background:#00ff0033; box-shadow:0 0 8px #00ff0055; }
+        .form-actions button:disabled { opacity:0.5; cursor:not-allowed; }
+        .form-error { color:#ff4444; font-size:0.8em; margin-top:3px; }
+        .policy-list { margin-top:15px; }
+        .policy-item { display:flex; justify-content:space-between; align-items:center; padding:12px; border-left:3px solid #00ff0066; margin-bottom:10px; background:#001100; border-radius:6px; transition:.2s; }
+        .policy-item:hover { box-shadow:0 0 10px #00ff0044; }
+        .policy-item-info { flex:1; }
+        .policy-name { font-weight:bold; margin-bottom:5px; }
+        .policy-details { font-size:0.85em; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:5px; opacity:0.85; }
+        .policy-action-badge { font-weight:bold; padding:2px 6px; border-radius:4px; }
+        .policy-delete-btn { background:#ff000055; border:1px solid #ff000077; padding:6px 12px; border-radius:4px; cursor:pointer; color:#ff0000; transition:.2s; }
+        .policy-delete-btn:hover { background:#ff000077; box-shadow:0 0 8px #ff000088; }
+        .empty-state { text-align:center; padding:20px; font-style:italic; opacity:0.6; }
       `}</style>
 
       <div className="policy-header">
@@ -280,55 +145,52 @@ const PolicyBuilder: React.FC<PolicyBuilderProps> = ({
         </button>
       </div>
 
-      {error && <div className="error">⚠️ {error}</div>}
-
       {showForm && (
-        <form className="policy-form" onSubmit={handleSubmit}>
+        <div className="policy-form">
           <div className="form-group">
             <label className="form-label">Policy Name</label>
             <input
               className="form-input"
-              type="text"
-              name="name"
-              placeholder="e.g., Block Torrents"
+              style={{ border: inputBorder('name') }}
               value={formData.name}
-              onChange={handleInputChange}
-              required
+              onChange={(e) => updateForm('name', e.target.value)}
+              placeholder="e.g., Block Torrents"
             />
+            {formErrors.name && <div className="form-error">{formErrors.name}</div>}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Priority (0-1000)</label>
+            <label className="form-label">Priority</label>
             <input
               className="form-input"
+              style={{ border: inputBorder('priority') }}
               type="number"
-              name="priority"
-              min="0"
-              max="1000"
               value={formData.priority}
-              onChange={handleInputChange}
+              min={0}
+              max={1000}
+              onChange={(e) => updateForm('priority', e.target.value)}
             />
+            {formErrors.priority && <div className="form-error">{formErrors.priority}</div>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Match Criteria</label>
             <textarea
               className="form-textarea"
-              name="match_criteria"
-              placeholder="e.g., dst_port >= 6881 AND dst_port <= 6999"
+              style={{ border: inputBorder('match_criteria') }}
               value={formData.match_criteria}
-              onChange={handleInputChange}
-              required
+              onChange={(e) => updateForm('match_criteria', e.target.value)}
+              placeholder="e.g., dst_port >= 6881 AND dst_port <= 6999"
             />
+            {formErrors.match_criteria && <div className="form-error">{formErrors.match_criteria}</div>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Action</label>
             <select
               className="form-select"
-              name="action"
               value={formData.action}
-              onChange={handleInputChange}
+              onChange={(e) => updateForm('action', e.target.value)}
             >
               <option value="allow">Allow</option>
               <option value="block">Block</option>
@@ -338,40 +200,33 @@ const PolicyBuilder: React.FC<PolicyBuilderProps> = ({
           </div>
 
           <div className="form-actions">
-            <button type="submit" disabled={loading}>
+            <button onClick={createPolicy} disabled={loading || Object.keys(formErrors).length > 0}>
               {loading ? 'Creating...' : 'Create Policy'}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              style={{ background: 'rgba(100, 100, 100, 0.2)', borderColor: 'rgba(100, 100, 100, 0.4)' }}
-            >
+            <button onClick={() => setShowForm(false)} style={{ background: '#33333322', borderColor: '#33333344', color: '#ffffffaa' }}>
               Cancel
             </button>
           </div>
-        </form>
+        </div>
       )}
 
       <div className="policy-list">
         {policies.length === 0 ? (
           <div className="empty-state">No policies created yet. Add one to get started!</div>
         ) : (
-          policies.map(policy => (
-            <div key={policy.id} className="policy-item">
+          policies.map((p) => (
+            <div key={p.id} className="policy-item">
               <div className="policy-item-info">
-                <div className="policy-name">{policy.name}</div>
+                <div className="policy-name">{p.name}</div>
                 <div className="policy-details">
-                  <span>Priority: {policy.priority}</span>
-                  <span>Action: {policy.action}</span>
-                  <span>Criteria: {policy.match_criteria.substring(0, 50)}...</span>
+                  <span>Priority: {p.priority}</span>
+                  <span>
+                    Action: <span className="policy-action-badge" style={{ background: actionColor(p.action), color: '#000' }}>{p.action}</span>
+                  </span>
+                  <span>Criteria: {p.match_criteria.length > 50 ? p.match_criteria.substring(0, 50) + '...' : p.match_criteria}</span>
                 </div>
               </div>
-              <button
-                className="policy-delete-btn"
-                onClick={() => handleDelete(policy.id)}
-              >
-                Delete
-              </button>
+              <button className="policy-delete-btn" onClick={() => deletePolicy(p.id)}>Delete</button>
             </div>
           ))
         )}

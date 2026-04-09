@@ -1,16 +1,18 @@
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+# Debian Copyright File
+
+Format: <https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/>
 Upstream-Name: netctl
 Upstream-Contact: NetCtl Developers <admin@netctl.dev>
-Source: https://github.com/yourusername/netctl
+Source: <https://github.com/BAPPITTO/netctl>
 
 Files: *
 Copyright: 2024 NetCtl Developers
 License: Apache-2.0
- Licensed under the Apache License, Version 2.0 (the "License");
+ This software is licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+ You may obtain a copy of the License at:
  .
-     http://www.apache.org/licenses/LICENSE-2.0
+     <http://www.apache.org/licenses/LICENSE-2.0>
  .
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,5 +21,7 @@ License: Apache-2.0
  limitations under the License.
 
 Files: debian/*
-Copyright: 2024 NetCtl Developers
+Copyright: 2026 NetCtl Developers
 License: Apache-2.0
+ This directory contains packaging scripts and metadata, licensed under the same
+ Apache License 2.0 as the main source code.

@@ -6,41 +6,42 @@ case "$1" in
     configure)
         # Create netctl system user if it doesn't exist
         if ! id -u netctl >/dev/null 2>&1; then
-            adduser --system --group --home /var/lib/netctl --shell /usr/sbin/nologin \
+            adduser --system --group --home /var/lib/netctl \
+                --shell /usr/sbin/nologin \
                 --comment "NetCtl System User" --quiet netctl
         fi
 
-        # Create necessary directories
-        mkdir -p /etc/netctl/certificates
-        mkdir -p /var/lib/netctl
-        mkdir -p /var/log/netctl
-        mkdir -p /var/run/netctl
+        # Create necessary directories safely
+        for dir in /etc/netctl/certificates /var/lib/netctl /var/log/netctl /var/run/netctl; do
+            mkdir -p "$dir"
+            chown netctl:netctl "$dir"
+        done
 
-        # Set correct permissions
-        chown -R netctl:netctl /etc/netctl
-        chown -R netctl:netctl /var/lib/netctl
-        chown -R netctl:netctl /var/log/netctl
-        chown -R netctl:netctl /var/run/netctl
-
+        # Set directory permissions
         chmod 750 /etc/netctl
         chmod 700 /etc/netctl/certificates
         chmod 750 /var/lib/netctl
         chmod 755 /var/log/netctl
         chmod 750 /var/run/netctl
 
-        # Generate self-signed certificate if not present
-        if [ ! -f /etc/netctl/certificates/netctl.crt ]; then
+        # Generate self-signed certificate if missing
+        CERT_DIR=/etc/netctl/certificates
+        KEY_FILE=$CERT_DIR/netctl.key
+        CRT_FILE=$CERT_DIR/netctl.crt
+
+        if [ ! -f "$CRT_FILE" ]; then
             echo "Generating self-signed certificate for NetCtl..."
             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout /etc/netctl/certificates/netctl.key \
-                -out /etc/netctl/certificates/netctl.crt \
-                -subj "/CN=netctl.local/O=NetCtl/C=US" 2>/dev/null || true
-            chown netctl:netctl /etc/netctl/certificates/netctl.* 2>/dev/null || true
-            chmod 600 /etc/netctl/certificates/netctl.key
-            chmod 644 /etc/netctl/certificates/netctl.crt
+                -keyout "$KEY_FILE" \
+                -out "$CRT_FILE" \
+                -subj "/CN=netctl.local/O=NetCtl/C=US" >/dev/null 2>&1 || true
+
+            chown netctl:netctl "$KEY_FILE" "$CRT_FILE" 2>/dev/null || true
+            chmod 600 "$KEY_FILE"
+            chmod 644 "$CRT_FILE"
         fi
 
-        # Enable service but don't start (user must run setup wizard first)
+        # Reload systemd daemons (service will be enabled manually)
         systemctl daemon-reload || true
         ;;
 

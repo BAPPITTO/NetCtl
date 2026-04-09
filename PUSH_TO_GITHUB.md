@@ -3,6 +3,7 @@
 ## Your Local Repository is Ready! ✅
 
 We've successfully initialized the NetCtl repository with 48 files and 2 initial commits:
+
 - e4eed31: Initial commit with all source files
 - 5a838ff: GitHub setup guide documentation
 
@@ -10,10 +11,11 @@ We've successfully initialized the NetCtl repository with 48 files and 2 initial
 
 ### 1️⃣ Create Repository on GitHub
 
-Navigate to: **https://github.com/new**
+Navigate to: **<https://github.com/new>**
 
 Fill in these details:
-```
+
+```bash
 Repository name: NetCtl
 Description: Enterprise SDN Platform - Network Control Engine with 
              eBPF/XDP, Flow Intelligence, Policy Automation, 
@@ -44,11 +46,13 @@ git push -u origin main
 ### 3️⃣ Verify Success ✅
 
 After pushing, verify at:
-```
+
+```bash
 https://github.com/YOUR_USERNAME/NetCtl
 ```
 
 You should see:
+
 - ✅ All 48 files visible
 - ✅ 2 commits in history
 - ✅ Code properly indexed
@@ -58,6 +62,7 @@ You should see:
 **NetCtl** is a production-grade **Enterprise SDN (Software-Defined Network) Control Platform** combining:
 
 ### 🎯 Core Capabilities
+
 - **Flow Intelligence**: 5-tuple flow tracking with policy-based routing
 - **Policy Engine**: Intent-based automation with rule evaluation
 - **JWT Authentication**: Secure token-based API access
@@ -68,6 +73,7 @@ You should see:
 - **Zero-Disruption Updates**: Transactional state with full rollback
 
 ### 🛠️ Tech Stack
+
 - **Backend**: Rust + Tokio (async) + Axum (web framework)
 - **Frontend**: TypeScript + React 18 + Vite + Recharts
 - **Kernel**: eBPF/XDP for packet processing
@@ -75,11 +81,13 @@ You should see:
 - **Testing**: 100+ unit tests with full coverage
 
 ### 📊 Stats
+
 - **47 Files** | **3500+ LOC** | **100+ Tests**
 - **12 Enterprise Modules** | **30 REST Endpoints**
 - **4 User Roles** | **17 Permissions** | **9 Audit Actions**
 
 ### 🎨 Dashboard Features
+
 - Real-time flow visualization
 - Interactive policy builder
 - Metrics graphing with time-series data
@@ -91,6 +99,7 @@ You should see:
 ### Recommended GitHub Enhancements
 
 1. **Add GitHub Actions CI/CD**
+
    ```yaml
    - Rust tests on every push
    - Type checking for TypeScript
@@ -120,7 +129,7 @@ You should see:
 
 ## File Counts by Component
 
-```
+```bash
 Total Files: 48
 
 Backend (Rust):
@@ -145,13 +154,17 @@ Documentation:
 ## Common Issues & Solutions
 
 ### Issue: "repository not found"
+
 **Solution**: Make sure your repository name matches exactly on GitHub
 
 ### Issue: "failed to push"
+
 **Solution**: Check your GitHub authentication (SSH vs HTTPS)
 
 ### Issue: Commit history missing
+
 **Solution**: Verify git config is correct:
+
 ```bash
 git config --list | grep user
 ```
@@ -175,6 +188,7 @@ git ls-files | wc -l
 ## 🎉 Success Checklist
 
 After pushing to GitHub, verify:
+
 - [ ] Repository visible at github.com/YOUR_USERNAME/NetCtl
 - [ ] 48 files visible in file browser
 - [ ] 2 commits in git history

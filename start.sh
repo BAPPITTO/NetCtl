@@ -1,54 +1,75 @@
 #!/bin/bash
-# Quick start script for NetCtl
+# NetCtl Hot-Swap Start Script
+# Backend state is preserved on rebuild
 
 set -e
 
-echo "🚀 Starting NetCtl Network Control Engine"
-echo "=========================================="
+DAEMON_PID=""
+FRONTEND_PID=""
 
-# Check if build exists
-if [ ! -f "backend/target/release/netctl-daemon" ]; then
-    echo "Backend not built. Running build.sh first..."
-    bash build.sh
-fi
+PROD_MODE=false
 
-if [ ! -d "frontend/dist" ]; then
-    echo "Frontend not built. Building..."
+for arg in "$@"; do
+    case $arg in
+        --prod)
+            PROD_MODE=true
+            shift
+            ;;
+    esac
+done
+
+echo "🚀 Starting NetCtl Network Control Engine (Hot-Swap Enabled)"
+echo "============================================================"
+
+# Ensure dependencies
+command -v chokidar >/dev/null 2>&1 || npm install -g chokidar-cli
+command -v concurrently >/dev/null 2>&1 || npm install -g concurrently
+
+# Function: start backend if not running
+start_backend() {
+    if [ -n "$DAEMON_PID" ] && ps -p $DAEMON_PID > /dev/null; then
+        echo "Backend already running (PID: $DAEMON_PID), sending SIGHUP for hot-reload..."
+        kill -HUP $DAEMON_PID
+    else
+        cd backend
+        echo "⏳ Building backend..."
+        cargo build
+        echo "✓ Backend build complete"
+
+        echo "Starting backend daemon..."
+        if [ "$EUID" -ne 0 ]; then
+            sudo ./target/debug/netctl-daemon &
+        else
+            ./target/debug/netctl-daemon &
+        fi
+        DAEMON_PID=$!
+        cd ..
+        echo "✓ Backend started (PID: $DAEMON_PID)"
+    fi
+}
+
+# Function: start frontend dev server
+start_frontend() {
     cd frontend
-    npm run build
+    if [ ! -d "node_modules" ]; then
+        echo "Installing frontend dependencies..."
+        npm install --silent
+    fi
+    echo "Starting frontend dev server..."
+    npm run dev &
+    FRONTEND_PID=$!
     cd ..
-fi
+}
 
-echo ""
-echo "Starting backend daemon..."
-cd backend
+# Initial start
+start_backend
+start_frontend
 
-# Check if running with root
-if [ "$EUID" -ne 0 ]; then
-    echo "⚠ Backend requires root for network operations"
-    echo "  Run with: sudo ./target/release/netctl-daemon"
-    echo ""
-    echo "Running with sudo..."
-    sudo ./target/release/netctl-daemon &
-    DAEMON_PID=$!
-else
-    ./target/release/netctl-daemon &
-    DAEMON_PID=$!
-fi
+# Watch backend for source changes
+npx chokidar "backend/src/**/*" -c "echo 'Backend source changed. Triggering hot-reload...'; bash -c 'start_backend'" &
 
-cd ..
+# Watch frontend for source changes
+npx chokidar "frontend/src/**/*" -c "echo 'Frontend source changed. Rebuilding...'; cd frontend && npm run build" &
 
-sleep 2
-
-echo "✓ Backend started (PID: $DAEMON_PID)"
-echo "✓ API running at http://localhost:3001"
-
-echo ""
-echo "Starting frontend development server..."
-cd frontend
-npm run dev
-
-echo ""
-echo "🎉 NetCtl is ready!"
-echo "   Dashboard: http://localhost:5173"
-echo "   API:       http://localhost:3001"
+# Wait for processes
+wait

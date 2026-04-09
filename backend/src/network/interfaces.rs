@@ -1,4 +1,6 @@
 use crate::error::{Error, Result};
+use regex::Regex;
+use std::process::Command;
 
 /// Interface information
 #[derive(Debug, Clone)]
@@ -13,9 +15,6 @@ pub struct InterfaceInfo {
 
 /// Get MAC address for interface
 pub fn get_interface_mac(interface: &str) -> Result<Option<String>> {
-    use std::process::Command;
-    use regex::Regex;
-
     let output = Command::new("ip")
         .args(&["link", "show", interface])
         .output()
@@ -25,20 +24,11 @@ pub fn get_interface_mac(interface: &str) -> Result<Option<String>> {
     let re = Regex::new(r"link/ether\s+([\da-f:]+)")
         .map_err(|e| Error::NetworkError(e.to_string()))?;
 
-    if let Some(caps) = re.captures(&stdout) {
-        if let Some(mac) = caps.get(1) {
-            return Ok(Some(mac.as_str().to_string()));
-        }
-    }
-
-    Ok(None)
+    Ok(re.captures(&stdout).and_then(|caps| caps.get(1).map(|m| m.as_str().to_string())))
 }
 
 /// Get MTU for interface
 pub fn get_interface_mtu(interface: &str) -> Result<Option<u32>> {
-    use std::process::Command;
-    use regex::Regex;
-
     let output = Command::new("ip")
         .args(&["link", "show", interface])
         .output()
@@ -48,13 +38,8 @@ pub fn get_interface_mtu(interface: &str) -> Result<Option<u32>> {
     let re = Regex::new(r"mtu\s+(\d+)")
         .map_err(|e| Error::NetworkError(e.to_string()))?;
 
-    if let Some(caps) = re.captures(&stdout) {
-        if let Some(mtu_str) = caps.get(1) {
-            if let Ok(mtu) = mtu_str.as_str().parse::<u32>() {
-                return Ok(Some(mtu));
-            }
-        }
-    }
-
-    Ok(None)
+    Ok(re
+        .captures(&stdout)
+        .and_then(|caps| caps.get(1))
+        .and_then(|mtu_str| mtu_str.as_str().parse::<u32>().ok()))
 }

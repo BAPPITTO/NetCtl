@@ -4,7 +4,7 @@
   padding: 20px;
   color: #00ff00;
   background-color: #0a0e27;
-  font-family: 'Courier New', monospace;
+  font-family: 'Times New Roman', serif;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -97,7 +97,7 @@
   background-color: #1a1f3a;
   border: 1px solid #00ff0066;
   color: #00ff00;
-  font-family: 'Courier New', monospace;
+  font-family: 'Times New Roman', serif;
   font-size: 13px;
   border-radius: 3px;
   transition: all 0.3s ease;
@@ -156,7 +156,7 @@
   padding: 10px 20px;
   border: none;
   border-radius: 3px;
-  font-family: 'Courier New', monospace;
+  font-family: 'Times New Roman', serif;
   font-size: 13px;
   font-weight: 500;
   text-transform: uppercase;
@@ -208,6 +208,7 @@
   background-color: #1a1f3a;
   border-radius: 4px;
   border-left: 4px solid;
+  font-family: 'Times New Roman', serif;
 }
 
 .dns-result h4 {
@@ -281,6 +282,7 @@
   word-break: break-all;
 }
 
+/* Status Badges */
 .status {
   padding: 2px 6px;
   border-radius: 3px;
@@ -314,11 +316,6 @@
   color: #ff6666;
 }
 
-.warning-icon {
-  margin-right: 8px;
-  font-size: 14px;
-}
-
 /* HTTPS Info */
 .https-info {
   margin-top: 12px;
@@ -329,6 +326,7 @@
   background-color: #1f2441;
   border-radius: 3px;
   border-left: 3px solid #ffff00;
+  font-family: 'Times New Roman', serif;
 }
 
 .info-box h4 {
@@ -364,6 +362,7 @@
   border: 1px solid #00ff0033;
   background-color: #0f1535;
   border-radius: 4px;
+  font-family: 'Times New Roman', serif;
 }
 
 /* Help Section */
@@ -373,6 +372,7 @@
   border: 1px solid #00880066;
   border-radius: 4px;
   margin-top: 30px;
+  font-family: 'Times New Roman', serif;
 }
 
 .config-help h4 {
@@ -394,7 +394,7 @@
   margin-bottom: 8px;
 }
 
-/* Responsive Design */
+/* Responsive Design & Loading */
 @media (max-width: 768px) {
   .lan-config-container {
     padding: 15px;
@@ -428,14 +428,9 @@
   }
 }
 
-/* Loading State */
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .btn:disabled {

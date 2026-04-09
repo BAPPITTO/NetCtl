@@ -10,6 +10,7 @@
 ## What Has Been Created
 
 ### Backend (Rust)
+
 - ✅ **Project Structure**
   - Workspace configuration with unified dependency management
   - Three binary targets: `netctl-daemon`, `netctl-cli`, **`netctl-tui` (NEW)**
@@ -41,6 +42,7 @@
   - Token bucket algorithm
 
 ### Frontend (TypeScript/React)
+
 - ✅ **Project Setup**
   - Vite build tool configuration
   - TypeScript with strict checking
@@ -63,6 +65,7 @@
   - `main.css` - Global styles with cyberpunk theme
 
 ### Linux Packaging (NEW)
+
 - ✅ **Debian Packaging**
   - `packaging/debian/control` - Package metadata and dependencies
   - `packaging/debian/rules` - Build recipes
@@ -88,6 +91,7 @@
   - Release directory management
 
 ### Documentation (NEW)
+
 - ✅ **PACKAGING.md** - Complete packaging and distribution guide
 - ✅ **IMPLEMENTATION_SUMMARY.md** - Technical architecture details
 - ✅ **NEW_FILES_MANIFEST.md** - Complete file inventory
@@ -101,7 +105,7 @@
 
 ## Files Created (60+ total)
 
-```
+```bash
 Backend (18 files):
   - src/main.rs, lib.rs, error.rs, state.rs, db.rs
   - src/qos.rs, metrics.rs
@@ -140,7 +144,7 @@ Configuration (5 files):
 
 ## Architecture Overview
 
-```
+```bash
 ┌────────────────────────────────────────────────┐
 │    TUI Setup Wizard (Terminal - Linux)         │  NEW
 │    Ratatui Framework - Matrix Aesthetic        │
@@ -188,8 +192,9 @@ Systemd Integration (Linux Deployment - NEW):
 ## API Endpoints (20+ total)
 
 ### Original Endpoints
+
 | Method | Endpoint | Purpose |
-|--------|----------|---------|
+| -------- | ---------- | --------- |
 | GET | `/api/health` | Health check |
 | GET | `/api/state` | Get complete system state |
 | GET | `/api/interfaces` | List network interfaces |
@@ -204,8 +209,9 @@ Systemd Integration (Linux Deployment - NEW):
 | GET | `/api/metrics/stream` | Stream live metrics (SSE) |
 
 ### New Endpoints
+
 | Method | Endpoint | Purpose |
-|--------|----------|---------|
+| -------- | ---------- | --------- |
 | POST | `/api/dashboard/configure` | Configure dashboard for LAN access |
 | POST | `/api/dns/verify` | Verify DNS resolution with loop detection |
 | POST | `/api/certificate/generate` | Generate self-signed HTTPS certificate |
@@ -235,9 +241,9 @@ Systemd Integration (Linux Deployment - NEW):
 
 This implementation represents 3 major new features with 4,330+ lines of production code, 38+ unit tests, and comprehensive documentation. All components are production-ready and have been thoroughly tested for correctness and security.
 
-## Architecture Overview
+## Overview of Architecture
 
-```
+```bash
 ┌──────────────────────────────────┐
 │  React Dashboard (Port 5173)     │
 │  Matrix Cyberpunk Theme          │
@@ -270,7 +276,7 @@ This implementation represents 3 major new features with 4,330+ lines of product
 ## API Endpoints (7 implemented)
 
 | Method | Endpoint | Purpose |
-|--------|----------|---------|
+| -------- | ---------- | --------- |
 | GET | `/api/health` | Health check |
 | GET | `/api/state` | Get complete system state |
 | GET | `/api/interfaces` | List network interfaces |
@@ -287,6 +293,7 @@ This implementation represents 3 major new features with 4,330+ lines of product
 ## Next Steps
 
 ### 1. Install Prerequisites (if not already installed)
+
 ```bash
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -299,12 +306,14 @@ brew install llvm  # or sudo apt-get install llvm llvm-dev
 ```
 
 ### 2. Build Project
+
 ```bash
 cd /Users/jerichofoster/NetCtl
 bash build.sh
 ```
 
 ### 3. Run in Development
+
 ```bash
 # Terminal 1: Backend
 cd backend
@@ -316,12 +325,14 @@ npm run dev
 ```
 
 ### 4. Access Dashboard
-- Dashboard: http://localhost:5173
-- API: http://localhost:3001/api/health
+
+- Dashboard: <http://localhost:5173>
+- API: <http://localhost:3001/api/health>
 
 ## Development Guidelines
 
 ### Backend Development
+
 - Place new network operations in `src/network/commands.rs`
 - Add new API endpoints in `src/api/handlers.rs`
 - Extend state in `src/state.rs`
@@ -329,6 +340,7 @@ npm run dev
 - Write tests (see existing test modules)
 
 ### Frontend Development
+
 - Components go in `src/components/`
 - API calls through `src/api.ts`
 - Custom hooks in `src/hooks/`
@@ -336,11 +348,12 @@ npm run dev
 - Test with `npm run type-check`
 
 ### eBPF Development
+
 - XDP program in `ebpf/src/xdp.c`
 - Build with `make` in `ebpf/` directory
 - Test on Linux 5.8+ VM with appropriate NIC driver
 
-## Key Features Implemented
+## Features Implemented
 
 ✅ **Transactional State Management** - Full rollback support  
 ✅ **VLAN Management** - Dynamic 802.1Q creation/deletion  
@@ -382,12 +395,14 @@ npm run dev
 ## Production Readiness
 
 **Not yet production-ready (v0.1.0). Use for:**
+
 - Development and testing
 - Proof of concept demonstrations
 - Single-machine network labs
 - Learning eBPF/networking concepts
 
 **Before production deployment (v1.0.0), add:**
+
 - Authentication and authorization
 - Audit logging and forensics
 - Error recovery and circuit breakers
@@ -399,7 +414,7 @@ npm run dev
 
 ## File Statistics
 
-```
+```bash
 Lines of Code:
   Backend Rust:    ~1,800 lines
   eBPF/XDP:          ~200 lines
@@ -427,6 +442,7 @@ Code Quality:
 ## Changelog
 
 ### v0.1.0 (April 8, 2026)
+
 - ✅ Initial project scaffold
 - ✅ Complete backend module structure
 - ✅ Full frontend component library
@@ -438,6 +454,7 @@ Code Quality:
 - ✅ Build automation scripts
 
 ### v0.2.0 (Planned)
+
 - JWT authentication
 - RBAC (role-based access control)
 - Rate limiting
@@ -447,6 +464,7 @@ Code Quality:
 - Multi-instance coordination
 
 ### v1.0.0 (Planned)
+
 - Production security audit
 - HA/clustering support
 - Enterprise features
@@ -462,6 +480,7 @@ MIT License - See project root
 **Implementation Complete!** ✅
 
 Your NetCtl Network Control Engine is now fully scaffolded with:
+
 - 43 source files across backend and frontend
 - Complete module structure and organization
 - All major features represented
@@ -471,6 +490,7 @@ Your NetCtl Network Control Engine is now fully scaffolded with:
 The system is ready for development. Start with the Build Guide (BUILD.md) to get Rust and Node.js installed, then run `bash build.sh` to compile the project.
 
 For questions about implementation, see:
+
 - Backend architecture: `README.md` + `.github/copilot-instructions.md`
 - API usage: `API.md`
 - Getting started: `BUILD.md`

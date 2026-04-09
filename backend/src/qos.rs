@@ -2,6 +2,7 @@ use crate::error::{Error, Result};
 use std::collections::HashMap;
 
 /// QoS (Quality of Service) management for bandwidth control
+#[derive(Debug, Default)]
 pub struct QosManager {
     rules: HashMap<String, QosRule>,
 }
@@ -16,29 +17,29 @@ pub struct QosRule {
 
 impl QosManager {
     pub fn new() -> Self {
-        Self {
-            rules: HashMap::new(),
-        }
+        Self::default()
     }
 
     /// Set rate limit for a MAC address
     pub fn set_rate_limit(&mut self, mac: String, rate_mbps: u32) -> Result<()> {
-        if rate_mbps == 0 {
+        let rule = if rate_mbps == 0 {
             // Rate 0 means block/drop all packets
-            self.rules.insert(mac, QosRule {
+            QosRule {
                 mac: mac.clone(),
                 rate_mbps: 0,
                 priority: 0,
                 blocked: true,
-            });
+            }
         } else {
-            self.rules.insert(mac, QosRule {
+            QosRule {
                 mac: mac.clone(),
                 rate_mbps,
                 priority: 5,
                 blocked: false,
-            });
-        }
+            }
+        };
+
+        self.rules.insert(mac, rule);
         Ok(())
     }
 
@@ -67,7 +68,7 @@ mod tests {
     fn test_qos_manager() {
         let mut qos = QosManager::new();
         qos.set_rate_limit("aa:bb:cc:dd:ee:ff".to_string(), 100).unwrap();
-        
+
         let rule = qos.get_rule("aa:bb:cc:dd:ee:ff").unwrap();
         assert_eq!(rule.rate_mbps, 100);
         assert!(!rule.blocked);
@@ -77,7 +78,7 @@ mod tests {
     fn test_qos_blocking() {
         let mut qos = QosManager::new();
         qos.set_rate_limit("aa:bb:cc:dd:ee:ff".to_string(), 0).unwrap();
-        
+
         let rule = qos.get_rule("aa:bb:cc:dd:ee:ff").unwrap();
         assert!(rule.blocked);
     }

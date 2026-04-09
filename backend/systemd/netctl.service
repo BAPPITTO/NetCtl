@@ -11,12 +11,12 @@ User=netctl
 Group=netctl
 WorkingDirectory=/opt/netctl
 
-# Service environment
+# Environment
 Environment="RUST_LOG=info"
 Environment="NETCTL_CONFIG=/etc/netctl/config.toml"
 EnvironmentFile=-/etc/netctl/netctl.env
 
-# Main process
+# Executable
 ExecStart=/usr/bin/netctl-daemon
 
 # Security hardening
@@ -28,8 +28,8 @@ ReadWritePaths=/var/log/netctl /var/lib/netctl /run/netctl
 
 # Restart policy
 Restart=on-failure
-RestartSec=10
-StartLimitInterval=60s
+RestartSec=10s
+StartLimitIntervalSec=60s
 StartLimitBurst=3
 
 # Resource limits
@@ -42,7 +42,7 @@ StandardError=journal
 SyslogIdentifier=netctl
 SyslogFacility=daemon
 
-# Shutdown grace period
+# Shutdown
 TimeoutStopSec=30
 KillMode=mixed
 KillSignal=SIGTERM

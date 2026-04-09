@@ -13,11 +13,13 @@ This document summarizes the implementation of three major features for the NetC
 ## Feature 1: TUI Setup Screen
 
 ### Purpose
+
 Interactive terminal-based installation and configuration wizard using Matrix/cyberpunk styling with Ratatui framework.
 
 ### Files Created
 
 #### Backend Module: `backend/src/tui.rs` (500+ lines)
+
 - **TuiApp struct**: Main application state machine
 - **SetupScreen enum**: 8 configuration screens
   - Welcome
@@ -34,6 +36,7 @@ Interactive terminal-based installation and configuration wizard using Matrix/cy
 - **Test Coverage**: 16+ unit tests covering all screens and transitions
 
 #### Binary: `backend/src/bin/tui.rs` (600+ lines)
+
 - **Terminal Setup**: Crossterm integration for raw terminal mode
 - **Event Loop**: Keyboard input handling
 - **UI Rendering**: Ratatui-based Matrix-style rendering
@@ -54,6 +57,7 @@ Interactive terminal-based installation and configuration wizard using Matrix/cy
 - **Color Scheme**: Green text, cyan borders, Matrix aesthetic
 
 #### Dependencies Added to `backend/Cargo.toml`
+
 ```toml
 ratatui = { version = "0.26", features = ["serde"] }
 crossterm = "0.27"
@@ -64,6 +68,7 @@ ring = "0.17"          # Cryptographic operations
 ```
 
 ### Features Implemented
+
 - ✅ 8-screen setup wizard flow
 - ✅ Bidirectional navigation with validation at each step
 - ✅ Real-time input validation (IPv4, hostnames, DNS)
@@ -76,12 +81,14 @@ ring = "0.17"          # Cryptographic operations
 
 ## Feature 2: LAN Dashboard Configuration
 
-### Purpose
+### Purpose Of Dashboard
+
 Enable NetCtl dashboard to be accessible on LANs with proper DNS configuration, HTTPS support, and loop detection.
 
 ### Backend API Modules Created
 
 #### Module: `backend/src/api/lan_config.rs` (350+ lines)
+
 - **DashboardConfig struct**: Dashboard settings
   - Hostname (e.g., netctl.local)
   - Port (default 443 for HTTPS)
@@ -104,6 +111,7 @@ Enable NetCtl dashboard to be accessible on LANs with proper DNS configuration, 
 - **Test Coverage**: 12+ unit tests
 
 #### Module: `backend/src/api/cert_handler.rs` (350+ lines)
+
 - **CertificateInfo struct**: Certificate generation details
   - CN, country, state, locality, organization
   - Validity days (365 default)
@@ -130,6 +138,7 @@ Enable NetCtl dashboard to be accessible on LANs with proper DNS configuration, 
 ### Frontend Component Created
 
 #### Component: `frontend/src/components/LANConfig.tsx` (400+ lines)
+
 - **Configuration Form**:
   - Hostname input with FQDN validation
   - Port number input (1024-65535)
@@ -154,6 +163,7 @@ Enable NetCtl dashboard to be accessible on LANs with proper DNS configuration, 
 - **Styling**: Matrix/cyberpunk CSS with green/cyan palette
 
 #### Stylesheet: `frontend/src/components/LANConfig.css` (500+ lines)
+
 - Matrix-style green on black theme
 - DNS result status colors (valid/invalid/loopback)
 - Form input styling with focus effects
@@ -164,7 +174,7 @@ Enable NetCtl dashboard to be accessible on LANs with proper DNS configuration, 
 
 ### DNS Loop Detection Example
 
-```
+```text
 Scenario: User tries to configure dashboard.local → resolves to 192.168.1.100
 - Expected IP: 192.168.1.100
 - Resolved IP: 192.168.1.100 (matches!)
@@ -174,9 +184,10 @@ Scenario: Misconfiguration where hostname loops back
 - Expected IP: 192.168.1.100  (dashboard IP)
 - Resolved IP: 192.168.1.100  (which is dashboard!)
 - Loop Detection: WARNING ⚠ "DNS loop detected"
-```
+```text
 
 ### Features Implemented
+
 - ✅ Configurable dashboard hostname
 - ✅ HTTPS with self-signed certificates
 - ✅ DNS verification with async queries
@@ -192,11 +203,12 @@ Scenario: Misconfiguration where hostname loops back
 ## Feature 3: Linux Packaging
 
 ### Purpose
+
 Enable NetCtl distribution as production-grade Linux packages for Debian and Red Hat ecosystems.
 
 ### Directory Structure Created
 
-```
+```text
 packaging/
 ├── debian/
 │   ├── control           # Package metadata + dependencies
@@ -211,12 +223,13 @@ packaging/
 
 backend/systemd/
 └── netctl.service        # Service configuration (referenced above)
-```
+```text
 
 ### Debian Packaging Files
 
 #### `packaging/debian/control` (60+ lines)
-```
+
+```text
 Package specifications:
 - netctl          Main daemon package
 - netctl-cli      CLI tools and TUI
@@ -227,6 +240,7 @@ Standards: Debian Policy 4.6.2
 ```
 
 #### `packaging/debian/rules` (70+ lines)
+
 - **Build Targets**:
   - Backend: `cargo build --release` for three binaries
   - Frontend: `npm install && npm run build`
@@ -238,6 +252,7 @@ Standards: Debian Policy 4.6.2
 - **Testing**: `cargo test --release --lib`
 
 #### `packaging/debian/postinst` (60+ lines)
+
 - Creates `netctl` system user (UID < 1000)
 - Creates required directories with proper permissions
 - Generates self-signed certificate if missing
@@ -245,17 +260,20 @@ Standards: Debian Policy 4.6.2
 - Reloads systemd daemon
 
 #### `packaging/debian/prerm` (30+ lines)
+
 - Stops netctl service before removal
 - Disables systemd service
 - Preserves `/etc/netctl/` configuration
 
 #### `packaging/debian/copyright` (25+ lines)
+
 - Apache 2.0 license specification
 - Upstream metadata
 
 ### Red Hat Packaging Files
 
 #### `packaging/rpm/netctl.spec` (200+ lines)
+
 - **Package Definition**:
   - netctl: Main daemon (x86_64, aarch64)
   - netctl-cli: CLI tools
@@ -273,6 +291,7 @@ Standards: Debian Policy 4.6.2
 ### Systemd Service Unit
 
 #### `backend/systemd/netctl.service` (45+ lines)
+
 ```ini
 [Unit]
 Wants=network-online.target
@@ -303,6 +322,7 @@ WantedBy=multi-user.target
 ### Documentation
 
 #### `PACKAGING.md` (500+ lines)
+
 - Prerequisites for both distributions
 - Build commands for Debian and RPM
 - Package contents and filesystem layout
@@ -313,6 +333,7 @@ WantedBy=multi-user.target
 - Version management guidelines
 
 #### `build-packages.sh` (150+ lines)
+
 - Automated build script for both distributions
 - Prerequisite checking
 - Automatic distro detection
@@ -324,7 +345,8 @@ WantedBy=multi-user.target
 ### Package Contents Summary
 
 **Main Package (netctl)**:
-```
+
+bash
 /usr/bin/netctl-daemon           (main binary)
 /etc/netctl/                      (configuration directory)
 /etc/netctl/certificates/         (HTTPS certificates)
@@ -333,22 +355,24 @@ WantedBy=multi-user.target
 /var/run/netctl/                  (runtime sockets)
 /usr/lib/systemd/system/netctl.service
 /usr/share/doc/netctl/README.md
-```
 
 **CLI Package (netctl-cli)**:
-```
+
+```text
 /usr/bin/netctl-cli               (CLI tool)
 /usr/bin/netctl-tui               (TUI setup wizard)
-```
+```text
 
 **Dashboard Package (netctl-dashboard)**:
-```
+
+```text
 /usr/share/netctl/dashboard/      (React build output)
-```
+```text
 
 ### Installation Examples
 
 **Debian/Ubuntu**:
+
 ```bash
 sudo dpkg -i netctl_1.0.0-1_amd64.deb
 sudo netctl-tui                    # Run setup
@@ -356,13 +380,15 @@ sudo systemctl start netctl
 ```
 
 **Red Hat/CentOS/Fedora**:
+
 ```bash
 sudo rpm -i netctl-1.0.0-1.el8.x86_64.rpm
 sudo netctl-tui                    # Run setup
 sudo systemctl start netctl
 ```
 
-### Features Implemented
+### Features Added
+
 - ✅ Debian (.deb) package with meta-packages
 - ✅ Red Hat (.rpm) package with dependencies
 - ✅ Systemd service with security hardening
@@ -380,16 +406,19 @@ sudo systemctl start netctl
 ## Integration Points
 
 ### TUI → LAN Dashboard Configuration
+
 - TUI captures DNS settings during setup
 - Feeds configuration to LAN dashboard module
 - Uses DNS verification from cert_handler
 
 ### LAN Dashboard → Packaging
+
 - Dashboard served from `/usr/share/netctl/dashboard/`
 - Configuration stored in `/etc/netctl/`
 - Logs written to `/var/log/netctl/`
 
 ### Packaging → TUI/Dashboard
+
 - Systemd integration enables service start/stop
 - `/etc/netctl/netctl.env` provides environment
 - Certificate paths fixed at build time
@@ -399,6 +428,7 @@ sudo systemctl start netctl
 ## Testing Recommendations
 
 1. **TUI Testing**:
+
    ```bash
    cargo test --lib tui
    cargo run --bin netctl-tui

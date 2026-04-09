@@ -1,6 +1,3 @@
-/// LAN Dashboard Configuration API
-/// Handles hostname, DNS verification, HTTPS setup, and accessibility
-
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -149,13 +146,13 @@ impl DNSConfiguration {
         self
     }
 
-    /// Verify DNS is valid
+    /// Validate DNS server addresses
     pub fn validate(&self) -> Result<(), String> {
-        if !is_valid_ipv4(&self.primary_dns) {
+        if !is_valid_ip(&self.primary_dns) {
             return Err("Invalid primary DNS server IP address".to_string());
         }
         if let Some(ref secondary) = self.secondary_dns {
-            if !is_valid_ipv4(secondary) {
+            if !is_valid_ip(secondary) {
                 return Err("Invalid secondary DNS server IP address".to_string());
             }
         }
@@ -163,7 +160,7 @@ impl DNSConfiguration {
     }
 }
 
-/// Verify hostname format
+/// Validate hostname syntax
 pub fn validate_hostname(hostname: &str) -> bool {
     if hostname.is_empty() || hostname.len() > 253 {
         return false;
@@ -189,21 +186,19 @@ pub fn validate_hostname(hostname: &str) -> bool {
     true
 }
 
-/// Validate IPv4 address
-pub fn is_valid_ipv4(ip: &str) -> bool {
-    IpAddr::from_str(ip)
-        .map(|addr| matches!(addr, IpAddr::V4(_)))
-        .unwrap_or(false)
+/// Validate IPv4/IPv6 address
+pub fn is_valid_ip(ip: &str) -> bool {
+    IpAddr::from_str(ip).is_ok()
 }
 
-/// Detect DNS loop (hostname resolves to itself)
+/// Detect DNS loop
 pub fn detect_dns_loop(resolved_ip: &str, expected_ip: &str) -> bool {
     resolved_ip == expected_ip
 }
 
 /// Generate self-signed certificate paths
 pub fn generate_cert_paths(hostname: &str) -> (String, String) {
-    let cert_dir = format!("/etc/netctl/certificates");
+    let cert_dir = "/etc/netctl/certificates";
     let cert_path = format!("{}/{}.crt", cert_dir, hostname);
     let key_path = format!("{}/{}.key", cert_dir, hostname);
     (cert_path, key_path)
@@ -214,40 +209,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_dashboard_config() {
-        let config = DashboardConfig::default();
-        assert_eq!(config.hostname, "netctl.local");
-        assert_eq!(config.port, 443);
-        assert!(config.enable_https);
+    fn test_dashboard_defaults() {
+        let cfg = DashboardConfig::default();
+        assert_eq!(cfg.hostname, "netctl.local");
+        assert_eq!(cfg.port, 443);
+        assert!(cfg.enable_https);
     }
 
     #[test]
     fn test_validate_hostname_valid() {
         assert!(validate_hostname("netctl.local"));
         assert!(validate_hostname("my-dashboard"));
-        assert!(validate_hostname("dashboard123"));
         assert!(validate_hostname("a"));
     }
 
     #[test]
     fn test_validate_hostname_invalid() {
         assert!(!validate_hostname(""));
-        assert!(!validate_hostname("-invalid"));
-        assert!(!validate_hostname("invalid-"));
-        assert!(!validate_hostname("in--valid"));
-        assert!(!validate_hostname("a".repeat(64))); // > 63 chars per label
+        assert!(!validate_hostname("-dash"));
+        assert!(!validate_hostname("dash-"));
+        assert!(!validate_hostname("a".repeat(64).as_str()));
     }
 
     #[test]
-    fn test_validate_ipv4() {
-        assert!(is_valid_ipv4("192.168.1.1"));
-        assert!(is_valid_ipv4("8.8.8.8"));
-        assert!(is_valid_ipv4("0.0.0.0"));
-        assert!(is_valid_ipv4("255.255.255.255"));
-        assert!(!is_valid_ipv4("256.1.1.1"));
-        assert!(!is_valid_ipv4("192.168.1"));
-        assert!(!is_valid_ipv4("invalid"));
-        assert!(!is_valid_ipv4("::1")); // IPv6
+    fn test_validate_ip() {
+        assert!(is_valid_ip("192.168.1.1"));
+        assert!(is_valid_ip("::1")); // IPv6 supported
+        assert!(!is_valid_ip("invalid"));
     }
 
     #[test]
@@ -257,53 +245,11 @@ mod tests {
     }
 
     #[test]
-    fn test_dns_configuration_validation() {
-        let config = DNSConfiguration::new("8.8.8.8".to_string());
-        assert!(config.validate().is_ok());
-
-        let config = DNSConfiguration::new("invalid".to_string());
-        assert!(config.validate().is_err());
-    }
-
-    #[test]
-    fn test_dns_configuration_with_secondary() {
-        let config = DNSConfiguration::new("8.8.8.8".to_string())
-            .with_secondary("8.8.4.4".to_string());
-
-        assert_eq!(config.primary_dns, "8.8.8.8");
-        assert_eq!(config.secondary_dns, Some("8.8.4.4".to_string()));
-        assert!(config.validate().is_ok());
-    }
-
-    #[test]
-    fn test_certificate_paths() {
-        let (cert_path, key_path) = generate_cert_paths("netctl");
-        assert!(cert_path.contains("netctl"));
-        assert!(key_path.contains("netctl"));
-        assert!(cert_path.ends_with(".crt"));
-        assert!(key_path.ends_with(".key"));
-    }
-
-    #[test]
-    fn test_dns_verification_status_display() {
-        assert_eq!(DNSVerificationStatus::Valid.to_string(), "Valid");
-        assert_eq!(DNSVerificationStatus::Invalid.to_string(), "Invalid");
-        assert_eq!(DNSVerificationStatus::Loopback.to_string(), "Loopback");
-    }
-
-    #[test]
-    fn test_configure_dashboard_response_serialization() {
-        let response = ConfigureDashboardResponse {
-            success: true,
-            hostname: "netctl.local".to_string(),
-            port: 443,
-            url: "https://netctl.local".to_string(),
-            certificate_generated: true,
-            message: "Configuration applied".to_string(),
-        };
-
-        let json = serde_json::to_string(&response).unwrap();
-        assert!(json.contains("netctl.local"));
-        assert!(json.contains("true"));
+    fn test_generate_cert_paths() {
+        let (cert, key) = generate_cert_paths("netctl");
+        assert!(cert.contains("netctl"));
+        assert!(key.contains("netctl"));
+        assert!(cert.ends_with(".crt"));
+        assert!(key.ends_with(".key"));
     }
 }

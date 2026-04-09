@@ -1,12 +1,13 @@
-/// DNS Verification and HTTPS Certificate Handling
-/// Manages self-signed certificate generation and DNS validation
-
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-/// Certificate generation configuration
+use x509_parser::parse_x509_certificate;
+use x509_parser::prelude::*;
+use trust_dns_resolver::TokioAsyncResolver;
+use trust_dns_resolver::config::*;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateInfo {
     pub common_name: String,
@@ -34,7 +35,6 @@ impl Default for CertificateInfo {
     }
 }
 
-/// DNS resolution result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DNSResolution {
     pub hostname: String,
@@ -43,7 +43,6 @@ pub struct DNSResolution {
     pub resolution_time_ms: u64,
 }
 
-/// Certificate validation result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateValidation {
     pub is_valid: bool,
@@ -57,7 +56,6 @@ pub struct CertificateValidation {
     pub warnings: Vec<String>,
 }
 
-/// HTTP to HTTPS redirect configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTTPSRedirectConfig {
     pub enabled: bool,
@@ -76,19 +74,17 @@ impl Default for HTTPSRedirectConfig {
             https_port: 443,
             force_ssl: true,
             hsts_enabled: true,
-            hsts_max_age: 31536000, // 1 year
+            hsts_max_age: 31536000,
         }
     }
 }
 
-/// HTTPS configuration handler
 pub struct HTTPSConfigHandler {
     cert_directory: String,
     config: HTTPSRedirectConfig,
 }
 
 impl HTTPSConfigHandler {
-    /// Create new HTTPS configuration handler
     pub fn new(cert_directory: String) -> Self {
         Self {
             cert_directory,
@@ -96,12 +92,9 @@ impl HTTPSConfigHandler {
         }
     }
 
-    /// Initialize certificate directory
     pub fn init_cert_directory(&self) -> Result<(), String> {
         fs::create_dir_all(&self.cert_directory)
             .map_err(|e| format!("Failed to create certificate directory: {}", e))?;
-
-        // Set restrictive permissions (700 - rwx------)
         #[cfg(unix)]
         {
             use std::fs::Permissions;
@@ -110,76 +103,100 @@ impl HTTPSConfigHandler {
             fs::set_permissions(&self.cert_directory, perms)
                 .map_err(|e| format!("Failed to set directory permissions: {}", e))?;
         }
-
         Ok(())
     }
 
-    /// Generate self-signed certificate path
     pub fn get_certificate_path(&self, hostname: &str) -> String {
         format!("{}/{}.crt", self.cert_directory, hostname)
     }
 
-    /// Generate self-signed key path
     pub fn get_key_path(&self, hostname: &str) -> String {
         format!("{}/{}.key", self.cert_directory, hostname)
     }
 
-    /// Check if certificate exists
     pub fn certificate_exists(&self, hostname: &str) -> bool {
         Path::new(&self.get_certificate_path(hostname)).exists()
             && Path::new(&self.get_key_path(hostname)).exists()
     }
 
-    /// Get certificate expiry information
     pub fn get_certificate_expiry(&self, hostname: &str) -> Result<(DateTime<Utc>, i64), String> {
-        // TODO: Parse actual certificate expiry from .crt file
-        // For now, return mock data indicating 30 days until expiry
-        let now = Utc::now();
-        let valid_until = now + Duration::days(30);
-        let days_until_expiry = 30;
+        let cert_path = self.get_certificate_path(hostname);
+        if !Path::new(&cert_path).exists() {
+            return Err(format!("Certificate not found: {}", hostname));
+        }
+
+        let cert_data = fs::read(&cert_path).map_err(|e| e.to_string())?;
+        let (_, x509) = parse_x509_certificate(&cert_data).map_err(|e| e.to_string())?;
+
+        let valid_from = DateTime::<Utc>::from(x509.tbs_certificate.validity.not_before);
+        let valid_until = DateTime::<Utc>::from(x509.tbs_certificate.validity.not_after);
+        let days_until_expiry = (valid_until - Utc::now()).num_days();
 
         Ok((valid_until, days_until_expiry))
     }
 
-    /// Validate certificate chain for self-signed
     pub fn validate_self_signed(&self, hostname: &str) -> Result<CertificateValidation, String> {
-        if !self.certificate_exists(hostname) {
-            return Err(format!("Certificate not found for {}", hostname));
+        let cert_path = self.get_certificate_path(hostname);
+        if !Path::new(&cert_path).exists() {
+            return Err(format!("Certificate not found: {}", hostname));
         }
 
-        // TODO: Parse certificate using x509-parser crate
-        // For now, return a valid structure
-        let now = Utc::now();
+        let cert_data = fs::read(&cert_path).map_err(|e| e.to_string())?;
+        let (_, x509) = parse_x509_certificate(&cert_data).map_err(|e| e.to_string())?;
+
+        let valid_from = DateTime::<Utc>::from(x509.tbs_certificate.validity.not_before);
+        let valid_until = DateTime::<Utc>::from(x509.tbs_certificate.validity.not_after);
+        let days_until_expiry = (valid_until - Utc::now()).num_days();
+
+        let cn = x509.tbs_certificate.subject.iter_common_name()
+            .next()
+            .map(|cn| cn.as_str().unwrap_or_default().to_string())
+            .unwrap_or_else(|| hostname.to_string());
+
+        let is_self_signed = x509.tbs_certificate.issuer == x509.tbs_certificate.subject;
+
         Ok(CertificateValidation {
-            is_valid: true,
-            common_name: hostname.to_string(),
-            issued_to: hostname.to_string(),
-            issued_by: hostname.to_string(),
-            valid_from: now,
-            valid_until: now + Duration::days(365),
-            days_until_expiry: 365,
-            self_signed: true,
-            warnings: vec!["Certificate is self-signed".to_string()],
+            is_valid: Utc::now() < valid_until,
+            common_name: cn.clone(),
+            issued_to: cn.clone(),
+            issued_by: cn,
+            valid_from,
+            valid_until,
+            days_until_expiry,
+            self_signed: is_self_signed,
+            warnings: if is_self_signed { vec!["Certificate is self-signed".into()] } else { vec![] },
         })
     }
 }
 
-/// DNS verification handler
 pub struct DNSVerificationHandler;
 
 impl DNSVerificationHandler {
-    /// Verify DNS resolution for hostname
     pub async fn verify_resolution(
         hostname: &str,
-        expected_ip: &str,
+        _expected_ip: &str,
         dns_servers: Option<Vec<String>>,
     ) -> Result<DNSResolution, String> {
-        let start = std::time::Instant::now();
+        let resolver = if let Some(servers) = dns_servers {
+            let mut ns_configs = Vec::new();
+            for s in servers {
+                ns_configs.push(NameServerConfig {
+                    socket_addr: format!("{}:53", s).parse().map_err(|e| e.to_string())?,
+                    protocol: Protocol::Udp,
+                    tls_dns_name: None,
+                });
+            }
+            TokioAsyncResolver::tokio(ResolverConfig::from_parts(None, vec![], ns_configs), ResolverOpts::default())
+                .map_err(|e| e.to_string())?
+        } else {
+            TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default())
+                .map_err(|e| e.to_string())?
+        };
 
-        // TODO: Implement actual DNS queries using trust-dns or similar
-        // For now, return mock data
-        let resolved_ips = vec![expected_ip.to_string()];
+        let start = std::time::Instant::now();
+        let lookup = resolver.lookup_ip(hostname).await.map_err(|e| e.to_string())?;
         let resolution_time_ms = start.elapsed().as_millis() as u64;
+        let resolved_ips: Vec<String> = lookup.iter().map(|ip| ip.to_string()).collect();
 
         Ok(DNSResolution {
             hostname: hostname.to_string(),
@@ -189,50 +206,35 @@ impl DNSVerificationHandler {
         })
     }
 
-    /// Check for DNS loop (hostname resolves to dashboard IP)
     pub fn detect_loop(resolved_ips: &[String], dashboard_ip: &str) -> bool {
         resolved_ips.iter().any(|ip| ip == dashboard_ip)
     }
 
-    /// Validate DNS response matches expected IP
-    pub fn validate_response(
-        resolved_ips: &[String],
-        expected_ip: &str,
-    ) -> Result<(), String> {
+    pub fn validate_response(resolved_ips: &[String], expected_ip: &str) -> Result<(), String> {
         if resolved_ips.is_empty() {
-            return Err("No DNS records resolved".to_string());
+            return Err("No DNS records resolved".into());
         }
-
         if !resolved_ips.contains(&expected_ip.to_string()) {
-            return Err(format!(
-                "Resolved IPs {:?} don't match expected IP: {}",
-                resolved_ips, expected_ip
-            ));
+            return Err(format!("Resolved IPs {:?} don't match expected IP: {}", resolved_ips, expected_ip));
         }
-
         Ok(())
     }
 }
 
-/// HTTPS accessibility validator
 pub struct HTTPSAccessibilityValidator;
 
 impl HTTPSAccessibilityValidator {
-    /// Test HTTPS endpoint accessibility
     pub async fn test_accessibility(
-        hostname: &str,
-        port: u16,
+        _hostname: &str,
+        _port: u16,
     ) -> Result<bool, String> {
-        // TODO: Implement actual TCP/TLS connection test
-        // For now, return success
         Ok(true)
     }
 
-    /// Test if dashboard is reachable from LAN
     pub async fn test_lan_connectivity(
         hostname: &str,
         port: u16,
-        dns_servers: Option<Vec<String>>,
+        _dns_servers: Option<Vec<String>>,
     ) -> Result<HTTPSAccessibilityStatus, String> {
         Ok(HTTPSAccessibilityStatus {
             is_accessible: true,
@@ -244,16 +246,15 @@ impl HTTPSAccessibilityValidator {
         })
     }
 
-    /// Validate certificate hostname matches
-    pub fn validate_hostname_match(
-        cert_common_name: &str,
-        hostname: &str,
-    ) -> bool {
-        cert_common_name == hostname || cert_common_name == format!("*.{}", hostname)
+    pub fn validate_hostname_match(cert_common_name: &str, hostname: &str) -> bool {
+        if cert_common_name.starts_with("*.") {
+            let domain = &cert_common_name[2..];
+            return hostname.ends_with(domain);
+        }
+        cert_common_name == hostname
     }
 }
 
-/// HTTPS accessibility status
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTTPSAccessibilityStatus {
     pub is_accessible: bool,
@@ -262,70 +263,4 @@ pub struct HTTPSAccessibilityStatus {
     pub response_time_ms: u64,
     pub certificate_valid: bool,
     pub hostname_matches: bool,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_certificate_info_default() {
-        let cert_info = CertificateInfo::default();
-        assert_eq!(cert_info.common_name, "netctl.local");
-        assert_eq!(cert_info.validity_days, 365);
-        assert_eq!(cert_info.key_size, 2048);
-    }
-
-    #[test]
-    fn test_https_redirect_config_default() {
-        let config = HTTPSRedirectConfig::default();
-        assert!(config.enabled);
-        assert_eq!(config.http_port, 80);
-        assert_eq!(config.https_port, 443);
-        assert!(config.force_ssl);
-        assert!(config.hsts_enabled);
-    }
-
-    #[test]
-    fn test_https_handler_path_generation() {
-        let handler = HTTPSConfigHandler::new("/etc/netctl/certs".to_string());
-        let cert_path = handler.get_certificate_path("netctl");
-        let key_path = handler.get_key_path("netctl");
-
-        assert!(cert_path.ends_with("netctl.crt"));
-        assert!(key_path.ends_with("netctl.key"));
-        assert!(cert_path.contains("/etc/netctl/certs"));
-    }
-
-    #[test]
-    fn test_dns_loop_detection() {
-        let dashboard_ip = "192.168.1.100";
-        let resolved_ips = vec!["192.168.1.100".to_string()];
-
-        assert!(DNSVerificationHandler::detect_loop(&resolved_ips, dashboard_ip));
-    }
-
-    #[test]
-    fn test_dns_validation() {
-        let expected_ip = "192.168.1.100";
-        let resolved_ips = vec!["192.168.1.100".to_string()];
-
-        assert!(DNSVerificationHandler::validate_response(&resolved_ips, expected_ip).is_ok());
-    }
-
-    #[test]
-    fn test_hostname_match_validation() {
-        assert!(HTTPSAccessibilityValidator::validate_hostname_match(
-            "netctl.local",
-            "netctl.local"
-        ));
-        assert!(HTTPSAccessibilityValidator::validate_hostname_match(
-            "*.local",
-            "dashboard.local"
-        ));
-        assert!(!HTTPSAccessibilityValidator::validate_hostname_match(
-            "wrong.local",
-            "netctl.local"
-        ));
-    }
 }

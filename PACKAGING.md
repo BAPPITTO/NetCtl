@@ -4,7 +4,7 @@ This document describes how to build and distribute NetCtl packages for Debian a
 
 ## Architecture Overview
 
-```
+```bash
 packaging/
 ├── debian/          # Debian/Ubuntu packaging
 │   ├── control      # Package metadata
@@ -16,7 +16,6 @@ packaging/
 │   └── netctl.spec  # RPM specification
 └── systemd/         # Systemd service units
     └── netctl.service
-```
 
 ## Building Debian Packages
 
@@ -99,7 +98,7 @@ sudo systemctl status netctl
 
 ## Building Red Hat Packages
 
-### Prerequisites
+### Prerequisites for Netctl
 
 ```bash
 sudo yum install -y \
@@ -115,7 +114,7 @@ sudo yum install -y \
 mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp}
 ```
 
-### Build Commands
+### Commands to build
 
 ```bash
 cd /Users/jerichofoster/NetCtl
@@ -177,7 +176,7 @@ sudo journalctl -u netctl -n 50
 
 ### Filesystem Layout
 
-```
+```text
 /usr/bin/
 ├── netctl-daemon      # Main daemon executable
 ├── netctl-cli         # Command-line interface
@@ -216,6 +215,7 @@ sudo journalctl -u netctl -n 50
 ### 1. Initialize System User
 
 Both Debian and RPM packages automatically create the `netctl` system user:
+
 ```bash
 # Verify user creation
 id netctl
@@ -225,10 +225,12 @@ getent passwd netctl
 ### 2. Generate Self-Signed Certificate
 
 Certificate is generated automatically in `/etc/netctl/certificates/`:
+
 - Certificate: `netctl.crt` (365-day validity)
 - Private Key: `netctl.key` (2048-bit RSA)
 
 To regenerate:
+
 ```bash
 sudo netctl-tui  # Use TUI certificate option
 ```
@@ -266,6 +268,7 @@ sudo journalctl -u netctl -f
 ### Environment File
 
 `/etc/netctl/netctl.env`:
+
 ```bash
 RUST_LOG=info
 NETCTL_CONFIG=/etc/netctl/config.toml
@@ -274,6 +277,7 @@ NETCTL_CONFIG=/etc/netctl/config.toml
 ### Main Configuration
 
 `/etc/netctl/config.toml`:
+
 ```toml
 [server]
 listen = "0.0.0.0:3001"

@@ -9,98 +9,84 @@ import MetricsGraph from './MetricsGraph';
 import AuditViewer from './AuditViewer';
 import './Dashboard.css';
 
+type Tab =
+  | 'overview'
+  | 'devices'
+  | 'vlans'
+  | 'qos'
+  | 'flows'
+  | 'policies'
+  | 'metrics'
+  | 'audit';
+
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'devices' | 'vlans' | 'qos' | 'flows' | 'policies' | 'metrics' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [state, setState] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch system state and metrics
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
         const [stateData, metricsData] = await Promise.all([
           getState(),
           getMetricsSummary(),
         ]);
-        setState(stateData.data);
-        setMetrics(metricsData.data);
+
+        if (!isMounted) return;
+
+        setState(stateData?.data || {});
+        setMetrics(metricsData?.data || {});
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchData();
     const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   if (loading) {
     return <div className="dashboard-loading">Initializing NetCtl...</div>;
   }
 
+  const deviceCount = Object.keys(state?.devices || {}).length;
+  const vlanCount = Object.keys(state?.vlans || {}).length;
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>🌐 NetCtl - Network Control Engine</h1>
+        <h1>NetCtl - Network Control Engine</h1>
         <div className="status-bar">
-          <span className="status-item">● System Active</span>
-          <span className="status-item">● IPv4 Forwarding: {state?.ipv4_forwarding_enabled ? 'Enabled' : 'Disabled'}</span>
-          <span className="status-item">● Devices: {Object.keys(state?.devices || {}).length}</span>
-          <span className="status-item">● VLANs: {Object.keys(state?.vlans || {}).length}</span>
+          <span className="status-item">System Active</span>
+          <span className="status-item">
+            IPv4 Forwarding: {state?.ipv4_forwarding_enabled ? 'Enabled' : 'Disabled'}
+          </span>
+          <span className="status-item">Devices: {deviceCount}</span>
+          <span className="status-item">VLANs: {vlanCount}</span>
         </div>
       </header>
 
       <nav className="dashboard-nav">
-        <button 
-          className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          Overview
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'devices' ? 'active' : ''}`}
-          onClick={() => setActiveTab('devices')}
-        >
-          Devices
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'vlans' ? 'active' : ''}`}
-          onClick={() => setActiveTab('vlans')}
-        >
-          VLANs
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'qos' ? 'active' : ''}`}
-          onClick={() => setActiveTab('qos')}
-        >
-          QoS
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'flows' ? 'active' : ''}`}
-          onClick={() => setActiveTab('flows')}
-        >
-          🔀 Flows
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'policies' ? 'active' : ''}`}
-          onClick={() => setActiveTab('policies')}
-        >
-          🔐 Policies
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'metrics' ? 'active' : ''}`}
-          onClick={() => setActiveTab('metrics')}
-        >
-          📈 Metrics
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'audit' ? 'active' : ''}`}
-          onClick={() => setActiveTab('audit')}
-        >
-          📋 Audit
-        </button>
+        {['overview', 'devices', 'vlans', 'qos', 'flows', 'policies', 'metrics', 'audit'].map((tab) => (
+          <button
+            key={tab}
+            className={`nav-tab ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab as Tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
       </nav>
 
       <main className="dashboard-content">
@@ -121,7 +107,7 @@ export default function Dashboard() {
                 <div className="metric-label">Packets Dropped</div>
               </div>
               <div className="metric-card">
-                <div className="metric-value">{Object.keys(state?.vlans || {}).length}</div>
+                <div className="metric-value">{vlanCount}</div>
                 <div className="metric-label">Active VLANs</div>
               </div>
             </div>

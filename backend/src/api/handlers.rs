@@ -9,7 +9,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::state::SystemState;
+use crate::state::{SystemState, Vlan, Device};
 use super::{ApiResponse, CreateVlanRequest, CreateDeviceRequest, SetQosRuleRequest};
 
 pub type SharedState = Arc<RwLock<SystemState>>;
@@ -31,27 +31,27 @@ pub fn create_router(state: SharedState) -> Router {
         .with_state(state)
 }
 
+// ================== Core Handlers ==================
+
 async fn get_state(State(state): State<SharedState>) -> impl IntoResponse {
     let state = state.read().await;
     Json(ApiResponse::ok(json!({
-        "devices": state.devices,
-        "vlans": state.vlans,
+        "devices": state.devices.values().cloned().collect::<Vec<_>>(),
+        "vlans": state.vlans.values().cloned().collect::<Vec<_>>(),
         "ipv4_forwarding_enabled": state.ipv4_forwarding_enabled,
-        "xdp_attached": state.xdp_attached_interfaces,
+        "xdp_attached": state.xdp_attached_interfaces.clone(),
         "timestamp": state.updated_at,
     })))
 }
 
 async fn get_interfaces() -> impl IntoResponse {
     match crate::network::detect_lan_interfaces() {
-        Ok(interfaces) => {
-            Json(ApiResponse::ok(json!({ "interfaces": interfaces })))
-        }
-        Err(e) => {
-            Json(ApiResponse::<serde_json::Value>::err(e.to_string()))
-        }
+        Ok(interfaces) => Json(ApiResponse::ok(json!({ "interfaces": interfaces }))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::<()>::err(e.to_string()))),
     }
 }
+
+// ================== VLAN Handlers ==================
 
 async fn create_vlan(
     State(state): State<SharedState>,
@@ -59,7 +59,7 @@ async fn create_vlan(
 ) -> impl IntoResponse {
     let mut state = state.write().await;
 
-    let vlan = crate::state::Vlan {
+    let vlan = Vlan {
         id: req.vlan_id,
         name: req.name,
         subnet: req.subnet,
@@ -73,13 +73,12 @@ async fn create_vlan(
 
     if let Err(e) = state.add_vlan(vlan.clone()) {
         return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<serde_json::Value>::err(e.to_string())),
-        )
-            .into_response();
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::err(e.to_string())),
+        );
     }
 
-    (StatusCode::CREATED, Json(ApiResponse::ok(vlan))).into_response()
+    (StatusCode::CREATED, Json(ApiResponse::ok(vlan)))
 }
 
 async fn delete_vlan(
@@ -90,18 +89,15 @@ async fn delete_vlan(
 
     if let Err(e) = state.remove_vlan(vlan_id) {
         return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<serde_json::Value>::err(e.to_string())),
-        )
-            .into_response();
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::err(e.to_string())),
+        );
     }
 
-    (
-        StatusCode::OK,
-        Json(ApiResponse::ok(json!({ "vlan_id": vlan_id, "deleted": true }))),
-    )
-        .into_response()
+    Json(ApiResponse::ok(json!({"vlan_id": vlan_id, "deleted": true})))
 }
+
+// ================== Device Handlers ==================
 
 async fn get_devices(State(state): State<SharedState>) -> impl IntoResponse {
     let state = state.read().await;
@@ -115,7 +111,7 @@ async fn create_device(
 ) -> impl IntoResponse {
     let mut state = state.write().await;
 
-    let device = crate::state::Device {
+    let device = Device {
         id: uuid::Uuid::new_v4().to_string(),
         mac: req.mac,
         name: req.name,
@@ -128,14 +124,15 @@ async fn create_device(
 
     if let Err(e) = state.add_device(device.clone()) {
         return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<serde_json::Value>::err(e.to_string())),
-        )
-            .into_response();
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::err(e.to_string())),
+        );
     }
 
-    (StatusCode::CREATED, Json(ApiResponse::ok(device))).into_response()
+    (StatusCode::CREATED, Json(ApiResponse::ok(device)))
 }
+
+// ================== QoS Handlers ==================
 
 async fn set_qos_rule(
     State(state): State<SharedState>,
@@ -146,10 +143,7 @@ async fn set_qos_rule(
     state.qos_rules.insert(mac.clone(), req.rate_mbps);
     state.update_timestamp();
 
-    Json(ApiResponse::ok(json!({
-        "mac": mac,
-        "rate_mbps": req.rate_mbps,
-    })))
+    Json(ApiResponse::ok(json!({"mac": mac, "rate_mbps": req.rate_mbps})))
 }
 
 async fn remove_qos_rule(
@@ -160,16 +154,15 @@ async fn remove_qos_rule(
     state.qos_rules.remove(&mac);
     state.update_timestamp();
 
-    Json(ApiResponse::ok(json!({
-        "mac": mac,
-        "removed": true,
-    })))
+    Json(ApiResponse::ok(json!({"mac": mac, "removed": true})))
 }
 
 async fn get_qos_rules(State(state): State<SharedState>) -> impl IntoResponse {
     let state = state.read().await;
     Json(ApiResponse::ok(state.qos_rules.clone()))
 }
+
+// ================== Metrics & Health ==================
 
 async fn get_metrics_summary() -> impl IntoResponse {
     Json(ApiResponse::ok(json!({

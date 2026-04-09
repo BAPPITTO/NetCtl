@@ -14,6 +14,7 @@ sudo cargo run --bin netctl-tui
 ```
 
 The TUI guides you through 8 configuration steps:
+
 1. **Welcome** - Introduction and feature overview
 2. **Interface Selection** - Choose network interface (eth0, wlan0, etc.)
 3. **IP Configuration** - Set IP address, netmask, gateway
@@ -24,6 +25,7 @@ The TUI guides you through 8 configuration steps:
 8. **Installation Complete** - Next steps
 
 **Navigation:**
+
 - Tab/Right Arrow: Next screen
 - Shift+Tab/Left Arrow: Previous screen
 - Enter: Confirm
@@ -32,6 +34,7 @@ The TUI guides you through 8 configuration steps:
 ### Option 2: Package Installation (NEW)
 
 **On Ubuntu/Debian:**
+
 ```bash
 sudo apt install ./netctl_1.0.0-1_amd64.deb
 sudo netctl-tui  # Run TUI setup
@@ -39,6 +42,7 @@ sudo systemctl start netctl
 ```
 
 **On CentOS/RHEL:**
+
 ```bash
 sudo rpm -i netctl-1.0.0-1.el8.x86_64.rpm
 sudo netctl-tui  # Run TUI setup
@@ -48,6 +52,7 @@ sudo systemctl start netctl
 ## Starting Up
 
 ### Quick Start
+
 ```bash
 cd /Users/jerichofoster/NetCtl
 bash start.sh
@@ -58,30 +63,36 @@ This starts both backend and frontend in development mode.
 ### Manual Start
 
 **Terminal 1 - Backend:**
+
 ```bash
 cd /Users/jerichofoster/NetCtl/backend
 RUST_LOG=info cargo run
 ```
 
 **Terminal 2 - Frontend:**
+
 ```bash
 cd /Users/jerichofoster/NetCtl/frontend
 npm run dev
 ```
 
-Then open http://localhost:5173 in your browser.
+Then open <http://localhost:5173> in your browser.
 
 ## Dashboard Features
 
 ### Overview Tab
+
 Shows system statistics:
+
 - Connected devices count
 - Total aggregate rate limit
 - Packets dropped
 - Active VLANs
 
 ### Devices Tab
+
 Displays all managed devices with:
+
 - Device name and MAC address
 - Assigned VLAN
 - Current rate limit
@@ -89,21 +100,27 @@ Displays all managed devices with:
 - Last seen timestamp
 
 ### VLANs Tab
+
 Manage virtual networks:
+
 - View all VLANs with subnet info
 - Create new VLANs
 - Delete VLANs
 - See DHCP status per VLAN
 
 ### QoS Tab
+
 Control bandwidth and blocking:
+
 - Create rate limiting rules
 - Block specific devices
 - Remove rules
 - View active rules
 
 ### LAN Dashboard Configuration Tab (NEW)
+
 Configure web dashboard for LAN access:
+
 - **Hostname:** Set FQDN (e.g., netctl.local)
 - **Port:** Configure access port (default 443 for HTTPS)
 - **HTTPS:** Enable/disable SSL with self-signed certificates
@@ -111,6 +128,7 @@ Configure web dashboard for LAN access:
 - **Loop Detection:** Prevents configuration errors
 
 **Configuration Steps:**
+
 1. Set desired hostname
 2. Optionally change port
 3. Toggle HTTPS (recommended)
@@ -118,6 +136,7 @@ Configure web dashboard for LAN access:
 5. If DNS resolves correctly, click "Save Configuration"
 
 **DNS Loop Detection:**
+
 - Prevents hostname from resolving back to dashboard IP
 - Warns if misconfiguration detected
 - Suggests /etc/hosts entry as fallback
@@ -139,6 +158,7 @@ Configure web dashboard for LAN access:
 6. **Verify:** Check VLANs tab shows your new VLAN
 
 Via API:
+
 ```bash
 curl -X POST http://localhost:3001/api/vlan \
   -H "Content-Type: application/json" \
@@ -164,6 +184,7 @@ curl -X POST http://localhost:3001/api/vlan \
 7. **Device:** Now limited to 100 Mbps
 
 Via API:
+
 ```bash
 # Set 100 Mbps limit
 curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:ff \
@@ -240,6 +261,7 @@ es.onmessage = (e) => {
 ### Priority-Based QoS
 
 Set multiple rate limits and priority levels:
+
 ```bash
 # High priority: 500 Mbps
 curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:01 \
@@ -274,6 +296,7 @@ create_vlan 30 "IoT" "192.168.30.0/24" "192.168.30.1"
 ### Monitoring Integration
 
 Use Prometheus/Grafana with metrics export:
+
 ```bash
 # Export metrics in Prometheus format
 curl http://localhost:3001/api/metrics/summary | jq '.data | to_entries[] | "\(.key)_total \(.value)"'
@@ -281,19 +304,20 @@ curl http://localhost:3001/api/metrics/summary | jq '.data | to_entries[] | "\(.
 
 ## Dashboard Controls Reference
 
-| Control | Action | Effect |
-|---------|--------|--------|
-| **Overview** tab | Click | Shows system summary |
-| **Create VLAN** button | Click | Opens VLAN creation form |
-| **Delete** button | Click on VLAN | Removes VLAN and config |
-| **+ Device** | Via API | Registers new device |
-| **Set Rule** in QoS | Enter MAC + rate, click | Applies bandwidth limit |
-| **Remove** button | Click in QoS table | Removes rate limit |
-| **Auto-refresh** | Every 2 seconds | Metrics and state updated |
+|Control|Action|Effect|
+|---------|--------|---------|
+|**Overview** tab|Click|Shows system summary|
+|**Create VLAN** button|Click|Opens VLAN creation form|
+|**Delete** button|Click on VLAN|Removes VLAN and config|
+|**+ Device**|Via API|Registers new device|
+|**Set Rule** in QoS|Enter MAC + rate, click|Applies bandwidth limit|
+|**Remove** button|Click in QoS table|Removes rate limit|
+|**Auto-refresh**|Every 2 seconds|Metrics and state updated|
 
 ## Troubleshooting
 
 ### Dashboard Won't Load
+
 ```bash
 # Check backend is running
 curl http://localhost:3001/api/health
@@ -306,6 +330,7 @@ cat frontend/vite.config.ts | grep proxy
 ```
 
 ### QoS Rules Don't Apply
+
 ```bash
 # Verify rules are stored
 curl http://localhost:3001/api/qos/devices
@@ -318,6 +343,7 @@ uname -r  # Should be 5.8+
 ```
 
 ### VLAN Creation Fails
+
 ```bash
 # Check network interfaces
 ip link show
@@ -330,6 +356,7 @@ sudo /Users/jerichofoster/NetCtl/backend/target/release/netctl-daemon
 ```
 
 ### Metrics Not Updating
+
 ```bash
 # Verify SSE stream
 curl -v http://localhost:3001/api/metrics/stream

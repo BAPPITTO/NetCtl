@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface MetricPoint {
   timestamp: number;
@@ -21,7 +21,7 @@ interface MetricsGraphProps {
   refreshInterval?: number;
 }
 
-const MetricsGraph: React.FC<MetricsGraphProps> = ({ 
+const MetricsGraph: React.FC<MetricsGraphProps> = ({
   metricName,
   apiUrl = 'http://localhost:3001',
   refreshInterval = 5000
@@ -40,9 +40,8 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
 
         if (result.success && result.data) {
           setStats(result.data);
-          // Generate mock data for visualization
           const chartData = Array.from({ length: 12 }, (_, i) => ({
-            timestamp: Date.now() - (i * 300000),
+            timestamp: Date.now() - i * 300000,
             value: result.data.avg + (Math.random() - 0.5) * result.data.max * 0.2,
             name: metricName,
           })).reverse();
@@ -81,8 +80,8 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
       <style>{`
         .metrics-graph {
           padding: 20px;
-          background: rgba(0, 255, 255, 0.05);
-          border: 1px solid rgba(0, 255, 255, 0.2);
+          background: rgba(0, 255, 0, 0.05);
+          border: 1px solid rgba(0, 255, 0, 0.2);
           border-radius: 4px;
           margin: 10px 0;
         }
@@ -94,10 +93,10 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
         }
 
         .metrics-header {
-          color: #00ffff;
+          color: #00ff00;
           font-weight: bold;
           margin-bottom: 15px;
-          text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
           font-size: 1.1em;
         }
 
@@ -110,8 +109,8 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
 
         .metric-stat {
           padding: 12px;
-          background: rgba(0, 255, 255, 0.1);
-          border: 1px solid rgba(0, 255, 255, 0.3);
+          background: rgba(0, 255, 0, 0.1);
+          border: 1px solid rgba(0, 255, 0, 0.3);
           border-radius: 4px;
           text-align: center;
         }
@@ -119,7 +118,7 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
         .metric-stat-label {
           font-size: 0.8em;
           opacity: 0.7;
-          color: rgba(0, 255, 255, 0.8);
+          color: rgba(0, 255, 0, 0.8);
           margin-bottom: 5px;
           text-transform: uppercase;
           font-weight: bold;
@@ -127,27 +126,27 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
 
         .metric-stat-value {
           font-size: 1.3em;
-          color: #00ffff;
+          color: #00ff00;
           font-family: monospace;
           font-weight: bold;
         }
 
         .chart-container {
-          background: rgba(0, 255, 255, 0.05);
+          background: rgba(0, 255, 0, 0.05);
           padding: 15px;
           border-radius: 4px;
-          border: 1px solid rgba(0, 255, 255, 0.1);
+          border: 1px solid rgba(0, 255, 0, 0.1);
         }
 
         .chart-title {
-          color: rgba(0, 255, 255, 0.7);
+          color: rgba(0, 255, 0, 0.7);
           font-size: 0.9em;
           margin-bottom: 10px;
           font-weight: bold;
         }
       `}</style>
 
-      <div className="metrics-header">📈 Metrics: {metricName}</div>
+      <div className="metrics-header">Metrics: {metricName}</div>
 
       {stats && (
         <div className="metrics-stats">
@@ -180,26 +179,26 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00ffff" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#00ffff" stopOpacity={0} />
+                <stop offset="5%" stopColor="#00ff00" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#00ff00" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="rgba(0,255,255,0.1)" />
-            <XAxis dataKey="time" stroke="#00ffff" tick={{ fontSize: 12 }} />
-            <YAxis stroke="#00ffff" />
+            <CartesianGrid stroke="rgba(0,255,0,0.1)" />
+            <XAxis dataKey="time" stroke="#00ff00" tick={{ fontSize: 12 }} />
+            <YAxis stroke="#00ff00" />
             <Tooltip
               contentStyle={{
                 background: 'rgba(0, 0, 0, 0.9)',
-                border: '1px solid #00ffff',
+                border: '1px solid #00ff00',
                 borderRadius: '4px',
-                color: '#00ffff',
+                color: '#00ff00',
               }}
             />
             <Legend />
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#00ffff"
+              stroke="#00ff00"
               fillOpacity={1}
               fill="url(#colorValue)"
               isAnimationActive={false}
@@ -209,7 +208,7 @@ const MetricsGraph: React.FC<MetricsGraphProps> = ({
       </div>
 
       {data.length > 0 && (
-        <div style={{ marginTop: '15px', fontSize: '0.85em', color: 'rgba(0,255,255,0.6)' }}>
+        <div style={{ marginTop: '15px', fontSize: '0.85em', color: 'rgba(0,255,0,0.6)' }}>
           <strong>Last Update:</strong> {new Date(data[data.length - 1].timestamp).toLocaleTimeString()}
         </div>
       )}

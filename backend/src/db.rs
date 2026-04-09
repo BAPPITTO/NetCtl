@@ -1,5 +1,5 @@
-use rusqlite::{Connection, params, Row};
-use crate::state::{SystemState, Device, Vlan, DhcpScope};
+use rusqlite::{Connection, params};
+use crate::state::{SystemState};
 use crate::error::{Error, Result};
 use chrono::Utc;
 use serde_json;
@@ -14,8 +14,8 @@ impl Database {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let conn = Connection::open(path)
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
-        
-        let db = Database { conn };
+
+        let db = Self { conn };
         db.init_schema()?;
         Ok(db)
     }
@@ -70,11 +70,7 @@ impl Database {
             "SELECT data FROM state ORDER BY created_at DESC LIMIT 1"
         ).map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        let result = stmt.query_row([], |row| {
-            row.get::<_, String>(0)
-        });
-
-        match result {
+        match stmt.query_row([], |row| row.get::<_, String>(0)) {
             Ok(json_data) => {
                 let state = serde_json::from_str(&json_data)
                     .map_err(|e| Error::DatabaseError(e.to_string()))?;
@@ -101,7 +97,7 @@ impl Database {
             "SELECT action, details, timestamp FROM audit_log ORDER BY timestamp DESC LIMIT ?1"
         ).map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        let trail = stmt.query_map(params![limit as i32], |row| {
+        let trail_iter = stmt.query_map(params![limit as i32], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, Option<String>>(1)?,
@@ -109,12 +105,8 @@ impl Database {
             ))
         }).map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        let mut result = Vec::new();
-        for entry in trail {
-            result.push(entry.map_err(|e| Error::DatabaseError(e.to_string()))?);
-        }
-
-        Ok(result)
+        trail_iter.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| Error::DatabaseError(e.to_string()))
     }
 }
 
@@ -126,21 +118,20 @@ mod tests {
     #[test]
     fn test_database_creation() {
         let temp = NamedTempFile::new().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        // If no panic, database was created successfully
+        let _db = Database::open(temp.path()).unwrap();
     }
 
     #[test]
     fn test_save_and_load_state() {
         let temp = NamedTempFile::new().unwrap();
         let db = Database::open(temp.path()).unwrap();
-        
+
         let mut state = SystemState::new();
         state.ipv4_forwarding_enabled = true;
-        
+
         db.save_state(&state).unwrap();
         let loaded = db.load_state().unwrap().unwrap();
-        
+
         assert_eq!(loaded.ipv4_forwarding_enabled, true);
     }
 }

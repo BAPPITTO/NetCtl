@@ -5,8 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NetCtl - Network Control Engine</title>
+    <link rel="stylesheet" href="/src/main.css" />
     <style>
-      /* Matrix rain animation background */
+      /* Animated Matrix rain background */
       body::before {
         content: '';
         position: fixed;
@@ -18,8 +19,14 @@
           linear-gradient(90deg, transparent 24%, rgba(0,255,0,.05) 25%, rgba(0,255,0,.05) 26%, transparent 27%, transparent 74%, rgba(0,255,0,.05) 75%, rgba(0,255,0,.05) 76%, transparent 77%, transparent),
           linear-gradient(0deg, transparent 24%, rgba(0,255,0,.05) 25%, rgba(0,255,0,.05) 26%, transparent 27%, transparent 74%, rgba(0,255,0,.05) 75%, rgba(0,255,0,.05) 76%, transparent 77%, transparent);
         background-size: 50px 50px;
+        animation: matrixShift 20s linear infinite;
         pointer-events: none;
         z-index: -10;
+      }
+
+      @keyframes matrixShift {
+        0% { background-position: 0 0, 0 0; }
+        100% { background-position: 1000px 1000px, -1000px -1000px; }
       }
     </style>
   </head>

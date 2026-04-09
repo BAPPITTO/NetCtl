@@ -19,14 +19,22 @@ pub fn run_privileged_cmd(cmd: &str, args: &[&str]) -> Result<String> {
 /// Create a VLAN interface
 pub fn create_vlan(base_interface: &str, vlan_id: u16) -> Result<()> {
     let vlan_interface = format!("{}.{}", base_interface, vlan_id);
-    
-    run_privileged_cmd("ip", &[
-        "link", "add", 
-        "link", base_interface, 
-        "name", &vlan_interface,
-        "type", "vlan", 
-        "id", &vlan_id.to_string()
-    ])?;
+
+    run_privileged_cmd(
+        "ip",
+        &[
+            "link",
+            "add",
+            "link",
+            base_interface,
+            "name",
+            &vlan_interface,
+            "type",
+            "vlan",
+            "id",
+            &vlan_id.to_string(),
+        ],
+    )?;
 
     run_privileged_cmd("ip", &["link", "set", &vlan_interface, "up"])?;
 
@@ -36,7 +44,7 @@ pub fn create_vlan(base_interface: &str, vlan_id: u16) -> Result<()> {
 /// Delete a VLAN interface
 pub fn delete_vlan(base_interface: &str, vlan_id: u16) -> Result<()> {
     let vlan_interface = format!("{}.{}", base_interface, vlan_id);
-    
+
     run_privileged_cmd("ip", &["link", "set", &vlan_interface, "down"])?;
     run_privileged_cmd("ip", &["link", "del", &vlan_interface])?;
 
@@ -46,10 +54,8 @@ pub fn delete_vlan(base_interface: &str, vlan_id: u16) -> Result<()> {
 /// Set IP address on interface
 pub fn set_ip_address(interface: &str, ip: &str, netmask: &str) -> Result<()> {
     let cidr = format!("{}/{}", ip, netmask_to_cidr(netmask)?);
-    
-    run_privileged_cmd("ip", &[
-        "addr", "add", &cidr, "dev", interface
-    ])?;
+
+    run_privileged_cmd("ip", &["addr", "add", &cidr, "dev", interface])?;
 
     Ok(())
 }
@@ -57,10 +63,8 @@ pub fn set_ip_address(interface: &str, ip: &str, netmask: &str) -> Result<()> {
 /// Remove IP address from interface
 pub fn remove_ip_address(interface: &str, ip: &str, netmask: &str) -> Result<()> {
     let cidr = format!("{}/{}", ip, netmask_to_cidr(netmask)?);
-    
-    run_privileged_cmd("ip", &[
-        "addr", "del", &cidr, "dev", interface
-    ])?;
+
+    run_privileged_cmd("ip", &["addr", "del", &cidr, "dev", interface])?;
 
     Ok(())
 }
@@ -86,7 +90,8 @@ fn netmask_to_cidr(netmask: &str) -> Result<String> {
 
     let mut cidr = 0;
     for part in parts {
-        let octet: u8 = part.parse()
+        let octet: u8 = part
+            .parse()
             .map_err(|_| Error::ConfigError("Invalid netmask octet".to_string()))?;
         cidr += octet.count_ones();
     }
@@ -94,11 +99,17 @@ fn netmask_to_cidr(netmask: &str) -> Result<String> {
     Ok(cidr.to_string())
 }
 
-/// Generate DHCP config for dnsmasq
-pub fn generate_dhcp_config(vlan_id: u16, interface: &str, range_start: &str, range_end: &str, lease_time: u32) -> Result<String> {
+/// Generate DHCP configuration for dnsmasq
+pub fn generate_dhcp_config(
+    vlan_id: u16,
+    interface: &str,
+    range_start: &str,
+    range_end: &str,
+    lease_time: u32,
+) -> Result<String> {
     Ok(format!(
         r#"# DHCP configuration for VLAN {}
-dhcp-range={},{}},{}
+dhcp-range={},{}{},{}
 interface={}
 bind-interfaces
 dhcp-lease-max=100
@@ -107,9 +118,14 @@ dhcp-option-force={},router
         vlan_id,
         range_start,
         range_end,
-        lease_time,
+        if lease_time > 0 {
+            format!(",{}", lease_time)
+        } else {
+            "".to_string()
+        },
+        "",
         interface,
-        vlan_id,
+        vlan_id
     ))
 }
 
@@ -144,7 +160,9 @@ mod tests {
 
     #[test]
     fn test_generate_dhcp_config() {
-        let config = generate_dhcp_config(10, "eth0.10", "192.168.10.100", "192.168.10.200", 3600).unwrap();
+        let config =
+            generate_dhcp_config(10, "eth0.10", "192.168.10.100", "192.168.10.200", 3600)
+                .unwrap();
         assert!(config.contains("192.168.10.100"));
         assert!(config.contains("dhcp-range"));
     }

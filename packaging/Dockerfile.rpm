@@ -1,10 +1,11 @@
+# RPM-based Dockerfile for building NetCtl RPM package
 FROM centos:8
 
 # Enable PowerTools repo for additional build tools
 RUN sed -i 's/enabled=0/enabled=1/g' /etc/yum.repos.d/CentOS-Linux-PowerTools.repo
 
 # Install build dependencies
-RUN yum install -y \
+RUN yum install -y --setopt=tsflags=nodocs \
     make \
     gcc \
     gcc-c++ \
@@ -19,35 +20,47 @@ RUN yum install -y \
     npm \
     && yum clean all
 
-# Create build directory
+# Set work directory
 WORKDIR /build
 
 # Copy NetCtl source
 COPY . /build/
 
+# -------------------
 # Build backend
+# -------------------
 WORKDIR /build/backend
 RUN cargo build --release
 
+# -------------------
 # Build frontend
+# -------------------
 WORKDIR /build/frontend
 RUN npm ci && npm run build
 
+# -------------------
 # Prepare RPM build directories
+# -------------------
 RUN mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
 # Copy spec file and sources
 RUN cp /build/packaging/rpm/SPECS/netctl.spec /root/rpmbuild/SPECS/ && \
     cp -r /build /root/rpmbuild/SOURCES/netctl-1.0.0
 
+# -------------------
 # Build RPM
+# -------------------
 WORKDIR /root/rpmbuild
 RUN rpmbuild -ba SPECS/netctl.spec
 
+# -------------------
 # Validate package
-RUN rpm -qip /root/rpmbuild/RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm && \
-    rpm -qlp /root/rpmbuild/RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm | head -20
+# -------------------
+RUN rpm -qip RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm && \
+    rpm -qlp RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm | head -20
 
+# -------------------
 # Output directory
+# -------------------
 VOLUME /output
-CMD cp /root/rpmbuild/RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm /output/
+CMD ["cp", "RPMS/x86_64/netctl-1.0.0-1.el8.x86_64.rpm", "/output/"]

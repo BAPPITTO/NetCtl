@@ -1,30 +1,34 @@
+# Top-level workspace for NetCtl
 [workspace]
-members = ["backend"]
-resolver = "2"
+members = ["backend"] # Only backend is part of the workspace for now
+resolver = "2" # Use Cargo's new dependency resolver
 
+# Workspace-wide package defaults
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["NetCtl Contributors"]
 license = "MIT"
 
+# Workspace-wide dependencies
 [workspace.dependencies]
-tokio = { version = "1.40", features = ["full"] }
-axum = "0.7"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-anyhow = "1.0"
-thiserror = "1.0"
-rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.3", features = ["v4", "serde"] }
-libbpf-rs = "0.24"
-aya = { version = "0.13", features = ["async_tokio"] }
-plain = "0.2"
+tokio = { version = "1.40", features = ["full"] } # Async runtime
+axum = "0.7" # Web framework
+serde = { version = "1.0", features = ["derive"] } # Serialization
+serde_json = "1.0" # JSON handling
+tracing = "0.1" # Observability
+tracing-subscriber = { version = "0.3", features = ["env-filter"] } # Logging
+anyhow = "1.0" # Error handling
+thiserror = "1.0" # Custom error types
+rusqlite = { version = "0.31", features = ["bundled", "chrono"] } # SQLite DB with chrono
+chrono = { version = "0.4", features = ["serde"] } # Date/time handling
+uuid = { version = "1.3", features = ["v4", "serde"] } # UUID generation
+libbpf-rs = "0.24" # eBPF helpers
+aya = { version = "0.13", features = ["async_tokio"] } # Async eBPF library
+plain = "0.2" # Minimalistic helpers
 
+# Release build optimization
 [profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
+opt-level = 3 # Maximum compiler optimization
+lto = true # Link-Time Optimization
+codegen-units = 1 # Single codegen unit for better optimizations

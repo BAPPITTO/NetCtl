@@ -1,3 +1,4 @@
+# Debian-based Dockerfile for building NetCtl .deb package
 FROM ubuntu:22.04
 
 # Install build dependencies
@@ -12,54 +13,73 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
+    npm \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Create build directory
+# Set work directory
 WORKDIR /build
 
 # Copy NetCtl source
 COPY . /build/
 
+# -------------------
 # Build backend
+# -------------------
 WORKDIR /build/backend
 RUN cargo build --release
 
+# -------------------
 # Build frontend
+# -------------------
 WORKDIR /build/frontend
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    npm ci && \
-    npm run build
+RUN npm ci && npm run build
 
+# -------------------
 # Prepare package structure
+# -------------------
 WORKDIR /build/packaging/debian
 RUN mkdir -p netctl_1.0.0-1_amd64/usr/bin \
-    && mkdir -p netctl_1.0.0-1_amd64/var/lib/netctl/public \
-    && mkdir -p netctl_1.0.0-1_amd64/etc/netctl \
-    && mkdir -p netctl_1.0.0-1_amd64/etc/systemd/system \
-    && mkdir -p netctl_1.0.0-1_amd64/var/lib/netctl \
-    && mkdir -p netctl_1.0.0-1_amd64/var/log/netctl
+    netctl_1.0.0-1_amd64/etc/netctl \
+    netctl_1.0.0-1_amd64/etc/systemd/system \
+    netctl_1.0.0-1_amd64/var/lib/netctl/public \
+    netctl_1.0.0-1_amd64/var/lib/netctl \
+    netctl_1.0.0-1_amd64/var/log/netctl
 
+# -------------------
 # Copy binaries
-RUN cp /build/backend/target/release/netctl netctl_1.0.0-1_amd64/usr/bin/ && \
-    cp /build/backend/target/release/netctl-tui netctl_1.0.0-1_amd64/usr/bin/ && \
+# -------------------
+RUN cp /build/backend/target/release/netctl \
+       /build/backend/target/release/netctl-tui \
+       netctl_1.0.0-1_amd64/usr/bin/ && \
     chmod 755 netctl_1.0.0-1_amd64/usr/bin/*
 
+# -------------------
 # Copy frontend assets
+# -------------------
 RUN cp -r /build/frontend/dist/* netctl_1.0.0-1_amd64/var/lib/netctl/public/ && \
-    chmod 644 netctl_1.0.0-1_amd64/var/lib/netctl/public/*
+    chmod -R 644 netctl_1.0.0-1_amd64/var/lib/netctl/public/*
 
-# Copy configuration files
-RUN cp /build/backend/config.example.toml netctl_1.0.0-1_amd64/etc/netctl/config.toml.example && \
+# -------------------
+# Copy configuration example
+# -------------------
+RUN cp /build/backend/config.example.toml \
+       netctl_1.0.0-1_amd64/etc/netctl/config.toml.example && \
     chmod 600 netctl_1.0.0-1_amd64/etc/netctl/config.toml.example
 
+# -------------------
 # Build .deb package
+# -------------------
 RUN dpkg-deb --build netctl_1.0.0-1_amd64
 
+# -------------------
 # Validate package
+# -------------------
 RUN dpkg-deb --info netctl_1.0.0-1_amd64.deb && \
     dpkg-deb --contents netctl_1.0.0-1_amd64.deb | head -20
 
+# -------------------
 # Output directory
+# -------------------
 VOLUME /output
-CMD cp netctl_1.0.0-1_amd64.deb /output/
+CMD ["cp", "netctl_1.0.0-1_amd64.deb", "/output/"]

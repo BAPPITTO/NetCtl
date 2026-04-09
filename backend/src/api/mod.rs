@@ -1,8 +1,38 @@
+//! Central API module
+//! Exposes core system APIs, enterprise extensions, LAN/dashboard configuration, and certificate management.
+
 use serde::{Deserialize, Serialize};
 use crate::state::Device;
 
-/// API request/response types
+/// ====== Generic API Response ======
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiResponse<T: Serialize> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<String>,
+}
 
+impl<T: Serialize> ApiResponse<T> {
+    /// Wrap a successful response
+    pub fn ok(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+
+    /// Wrap an error response
+    pub fn err(error: String) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(error),
+        }
+    }
+}
+
+/// ====== Core API Request/Response Types ======
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StateResponse {
     pub devices: std::collections::HashMap<String, Device>,
@@ -44,32 +74,21 @@ pub struct ApiError {
     pub details: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
-}
-
-impl<T: Serialize> ApiResponse<T> {
-    pub fn ok(data: T) -> Self {
-        Self {
-            success: true,
-            data: Some(data),
-            error: None,
-        }
-    }
-
-    pub fn err(error: String) -> Self {
-        Self {
-            success: false,
-            data: None,
-            error: Some(error),
-        }
-    }
-}
-
+/// ====== Module Exports ======
+// Core handlers for system state, devices, VLANs, QoS, metrics
 pub mod handlers;
+
+// Enterprise features: flows, policies, metrics, alerts, audit logging, auth
 pub mod extensions;
+
+// LAN/dashboard configuration: hostname, DNS, HTTPS, certificates
 pub mod lan_config;
+
+// Certificate handling utilities
 pub mod cert_handler;
+
+/// Re-exports for convenience
+pub use handlers::*;
+pub use extensions::*;
+pub use lan_config::*;
+pub use cert_handler::*;

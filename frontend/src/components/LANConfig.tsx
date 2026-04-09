@@ -1,8 +1,5 @@
-/// LAN Dashboard Configuration Component
-/// Allows users to configure hostname, HTTPS, and verify DNS settings
-
 import React, { useState, useEffect } from 'react';
-import './LANConfig.css';
+import './LanConfig.css';
 
 interface DNSVerificationResult {
   hostname: string;
@@ -34,10 +31,8 @@ const LANConfigComponent: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [localIP, setLocalIP] = useState('');
 
   useEffect(() => {
-    // Detect local IP address
     detectLocalIP();
   }, []);
 
@@ -46,21 +41,17 @@ const LANConfigComponent: React.FC = () => {
       const response = await fetch('/api/network/local-ip');
       if (response.ok) {
         const data = await response.json();
-        setLocalIP(data.ip_address);
-        setConfig(prev => ({
-          ...prev,
-          local_ip_address: data.ip_address
-        }));
+        setConfig(prev => ({ ...prev, local_ip_address: data.ip_address }));
       }
-    } catch (error) {
-      console.error('Failed to detect local IP:', error);
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to detect local IP address' });
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const inputValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    
+
     setConfig(prev => ({
       ...prev,
       [name]: name === 'port' ? parseInt(value) : inputValue,
@@ -70,7 +61,8 @@ const LANConfigComponent: React.FC = () => {
   const verifyDNS = async () => {
     setIsVerifying(true);
     setDNSResults(null);
-    
+    setMessage(null);
+
     try {
       const response = await fetch('/api/dns/verify', {
         method: 'POST',
@@ -83,29 +75,16 @@ const LANConfigComponent: React.FC = () => {
 
       const data = await response.json();
       setDNSResults(data);
-      
+
       if (data.loop_detected) {
-        setMessage({
-          type: 'error',
-          text: '⚠ DNS loop detected! The hostname resolves back to the dashboard IP.',
-        });
+        setMessage({ type: 'error', text: 'DNS loop detected: hostname resolves back to dashboard IP' });
       } else if (data.status === 'Valid') {
-        setMessage({
-          type: 'success',
-          text: '✓ DNS verification successful!',
-        });
+        setMessage({ type: 'success', text: 'DNS verification successful' });
       } else {
-        setMessage({
-          type: 'error',
-          text: `✗ DNS verification failed: ${data.message}`,
-        });
+        setMessage({ type: 'error', text: `DNS verification failed: ${data.message}` });
       }
-    } catch (error) {
-      console.error('DNS verification error:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to verify DNS configuration',
-      });
+    } catch {
+      setMessage({ type: 'error', text: 'Error verifying DNS configuration' });
     } finally {
       setIsVerifying(false);
     }
@@ -113,7 +92,8 @@ const LANConfigComponent: React.FC = () => {
 
   const saveConfiguration = async () => {
     setIsSaving(true);
-    
+    setMessage(null);
+
     try {
       const response = await fetch('/api/dashboard/configure', {
         method: 'POST',
@@ -122,23 +102,12 @@ const LANConfigComponent: React.FC = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setMessage({
-          type: 'success',
-          text: '✓ Dashboard configuration saved successfully!',
-        });
+        setMessage({ type: 'success', text: 'Configuration saved successfully' });
       } else {
-        setMessage({
-          type: 'error',
-          text: 'Failed to save configuration',
-        });
+        setMessage({ type: 'error', text: 'Failed to save configuration' });
       }
-    } catch (error) {
-      console.error('Configuration error:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to save dashboard configuration',
-      });
+    } catch {
+      setMessage({ type: 'error', text: 'Error saving configuration' });
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +117,7 @@ const LANConfigComponent: React.FC = () => {
     <div className="lan-config-container">
       <div className="lan-config-header">
         <h2>LAN Dashboard Configuration</h2>
-        <p>Configure how your NetCtl dashboard is accessed on the local network</p>
+        <p>Configure local network access for your NetCtl dashboard</p>
       </div>
 
       {message && (
@@ -158,20 +127,18 @@ const LANConfigComponent: React.FC = () => {
       )}
 
       <div className="config-section">
-        <h3>Dashboard Access Settings</h3>
-        
+        <h3>Dashboard Access</h3>
         <div className="form-group">
-          <label htmlFor="hostname">Hostname (FQDN)</label>
+          <label htmlFor="hostname">Hostname</label>
           <input
             type="text"
             id="hostname"
             name="hostname"
             value={config.hostname}
             onChange={handleInputChange}
-            placeholder="e.g., netctl.local"
             className="form-control"
           />
-          <small>The hostname used to access your dashboard on the LAN</small>
+          <small>Hostname for LAN access</small>
         </div>
 
         <div className="form-group">
@@ -182,8 +149,8 @@ const LANConfigComponent: React.FC = () => {
             name="port"
             value={config.port}
             onChange={handleInputChange}
-            min="1024"
-            max="65535"
+            min={1024}
+            max={65535}
             className="form-control"
           />
           <small>HTTPS port (443 recommended)</small>
@@ -199,9 +166,9 @@ const LANConfigComponent: React.FC = () => {
               onChange={handleInputChange}
               className="form-checkbox"
             />
-            <span>Enable HTTPS</span>
+            Enable HTTPS
           </label>
-          <small>Uses self-signed certificate for secure LAN access</small>
+          <small>Self-signed certificate for secure access</small>
         </div>
 
         <div className="form-group">
@@ -212,7 +179,6 @@ const LANConfigComponent: React.FC = () => {
             name="dns_domain"
             value={config.dns_domain}
             onChange={handleInputChange}
-            placeholder="e.g., local"
             className="form-control"
           />
           <small>Local domain for mDNS/DNS resolution</small>
@@ -225,26 +191,24 @@ const LANConfigComponent: React.FC = () => {
             value={config.local_ip_address}
             disabled
             className="form-control disabled"
-            placeholder="Auto-detected"
           />
-          <small>Automatically detected network IP</small>
+          <small>Auto-detected IP</small>
         </div>
       </div>
 
       <div className="config-section">
         <h3>DNS Verification</h3>
-        
         <button
           onClick={verifyDNS}
           disabled={isVerifying || !config.hostname}
           className="btn btn-secondary"
         >
-          {isVerifying ? 'Verifying...' : 'Verify DNS Configuration'}
+          {isVerifying ? 'Verifying...' : 'Verify DNS'}
         </button>
 
         {dnsResults && (
           <div className={`dns-result dns-result-${dnsResults.status.toLowerCase()}`}>
-            <h4>DNS Verification Result</h4>
+            <h4>DNS Result</h4>
             <div className="result-details">
               <div className="result-row">
                 <span className="label">Hostname:</span>
@@ -268,8 +232,7 @@ const LANConfigComponent: React.FC = () => {
               </div>
               {dnsResults.loop_detected && (
                 <div className="result-row warning">
-                  <span className="warning-icon">⚠</span>
-                  <span>DNS Loop Detected - hostname resolves back to dashboard</span>
+                  <span>DNS loop detected</span>
                 </div>
               )}
               <div className="result-row">
@@ -281,24 +244,23 @@ const LANConfigComponent: React.FC = () => {
         )}
       </div>
 
-      <div className="config-section">
-        <h3>HTTPS Certificate</h3>
-        
-        {config.enable_https && (
+      {config.enable_https && (
+        <div className="config-section">
+          <h3>HTTPS Certificate</h3>
           <div className="https-info">
             <div className="info-box">
               <h4>Self-Signed Certificate</h4>
-              <p>A self-signed HTTPS certificate will be generated for secure LAN access.</p>
+              <p>Secure LAN access with a self-signed certificate.</p>
               <ul>
-                <li>Certificate CN: {config.hostname}</li>
+                <li>CN: {config.hostname}</li>
                 <li>Validity: 365 days</li>
-                <li>Key Size: 2048-bit RSA</li>
-                <li>Browser Warning: Expected (self-signed)</li>
+                <li>Key: 2048-bit RSA</li>
+                <li>Browser warnings are expected</li>
               </ul>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="config-actions">
         <button
@@ -311,13 +273,13 @@ const LANConfigComponent: React.FC = () => {
       </div>
 
       <div className="config-help">
-        <h4>Setup Tips</h4>
+        <h4>Tips</h4>
         <ul>
-          <li>Use a meaningful hostname like "netctl.local" for easy discovery</li>
-          <li>Verify DNS is working before accessing the dashboard</li>
-          <li>Browser warnings about self-signed certificates are normal</li>
-          <li>Add hostname to your /etc/hosts if mDNS is not available</li>
-          <li>Use HTTPS for secure communication on untrusted networks</li>
+          <li>Use a clear hostname like "netctl.local"</li>
+          <li>Verify DNS before accessing the dashboard</li>
+          <li>Self-signed certificate warnings are normal</li>
+          <li>Add hostname to /etc/hosts if needed</li>
+          <li>Use HTTPS on untrusted networks</li>
         </ul>
       </div>
     </div>

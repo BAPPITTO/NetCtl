@@ -76,18 +76,18 @@ print_success "Frontend build complete"
 if [[ "$DISTRO" == "debian" || "$DISTRO" == "manual" ]]; then
     print_step "Building Debian package..."
     cd "$PROJECT_DIR"
-    
+
     # Create debian source formats
     mkdir -p debian
-    
+
     # Build with dpkg-buildpackage
     if command -v dpkg-buildpackage >/dev/null 2>&1; then
         # Clean previous build
         dpkg-buildpackage -T clean 2>/dev/null || true
-        
+
         # Build binary packages
         debuild -b -uc -us 2>&1 | tail -10 || print_info "dpkg-buildpackage incomplete"
-        
+
         # Copy to release folder
         if [ -f "../netctl_${VERSION}-1_amd64.deb" ]; then
             cp "../netctl_${VERSION}-1_amd64.deb" "$RELEASE_DIR/"
@@ -102,15 +102,22 @@ fi
 if [[ "$DISTRO" == "rhel" || "$DISTRO" == "manual" ]]; then
     print_step "Building Red Hat package..."
     cd "$PROJECT_DIR"
-    
+
     # Setup RPM build environment
     mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp}
-    
-    # Copy spec file
-    cp packaging/rpm/netctl.spec ~/rpmbuild/SPECS/
-    
+
+    # Determine version from Git
+    GIT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "$VERSION")
+    print_info "Using version: $GIT_VERSION"
+
+    # Copy spec file and update version dynamically
+    SPEC_FILE=packaging/rpm/netctl.spec
+    TMP_SPEC=~/rpmbuild/SPECS/netctl.spec
+    mkdir -p ~/rpmbuild/SPECS
+    sed "s/^Version:.*$/Version: $GIT_VERSION/" "$SPEC_FILE" > "$TMP_SPEC"
+
     # Create source tarball
-    tar czf ~/rpmbuild/SOURCES/netctl-${VERSION}.tar.gz \
+    tar czf ~/rpmbuild/SOURCES/netctl-${GIT_VERSION}.tar.gz \
         --exclude=.git \
         --exclude=target \
         --exclude=dist \
@@ -118,13 +125,13 @@ if [[ "$DISTRO" == "rhel" || "$DISTRO" == "manual" ]]; then
         --exclude=debian \
         --exclude=.DS_Store \
         . 2>/dev/null || true
-    
+
     # Build RPM
     if command -v rpmbuild >/dev/null 2>&1; then
-        rpmbuild -bb ~/rpmbuild/SPECS/netctl.spec 2>&1 | tail -10 || print_info "rpmbuild incomplete"
-        
+        rpmbuild -bb "$TMP_SPEC" 2>&1 | tail -10 || print_info "rpmbuild incomplete"
+
         # Copy to release folder
-        RPM_FILE=$(find ~/rpmbuild/RPMS -name "netctl-${VERSION}-*.rpm" 2>/dev/null | head -1)
+        RPM_FILE=$(find ~/rpmbuild/RPMS -name "netctl-${GIT_VERSION}-*.rpm" 2>/dev/null | head -1)
         if [ -n "$RPM_FILE" ]; then
             cp "$RPM_FILE" "$RELEASE_DIR/"
             print_success "RPM package: $(basename $RPM_FILE)"
@@ -150,11 +157,11 @@ echo ""
 print_success "Build complete!"
 echo ""
 echo "Next steps:"
-echo "  1. Test packages on target system"
-echo "  2. Upload to package repositories (apt, yum)"
-echo "  3. Create GitHub release with packages"
+echo " 1. Test packages on target system"
+echo " 2. Upload to package repositories (apt, yum)"
+echo " 3. Create GitHub release with packages"
 echo ""
 echo "Installation test:"
-echo "  sudo dpkg -i $RELEASE_DIR/netctl*.deb"
-echo "  sudo rpm -i $RELEASE_DIR/netctl*.rpm"
+echo " sudo dpkg -i $RELEASE_DIR/netctl*.deb"
+echo " sudo rpm -i $RELEASE_DIR/netctl*.rpm"
 echo ""

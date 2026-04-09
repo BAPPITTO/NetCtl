@@ -5,6 +5,7 @@
 Follow these steps to create a new GitHub repository and push NetCtl:
 
 ### Step 1: Create Repository on GitHub
+
 1. Go to [github.com/new](https://github.com/new)
 2. Fill in:
    - **Repository name**: `NetCtl`
@@ -33,13 +34,14 @@ git push -u origin main
 ### Step 3: Verify on GitHub
 
 After pushing, verify:
+
 - Go to your repository: `https://github.com/YOUR_USERNAME/NetCtl`
 - Confirm all files are visible
 - Check that commit history shows your initial commit
 
 ## Repository Structure
 
-```
+```bash
 NetCtl/
 ├── backend/                          # Rust backend daemon
 │   ├── src/
@@ -100,6 +102,7 @@ NetCtl/
 ## Key Features
 
 ### Backend (Rust)
+
 - **Transactional State**: Full rollback support for network operations
 - **Flow Intelligence**: 5-tuple tracking, policy matching, intent-based automation
 - **JWT Authentication**: Token generation, verification, expiration handling
@@ -110,6 +113,7 @@ NetCtl/
 - **REST API**: 30+ endpoints covering all features
 
 ### Frontend (React + TypeScript)
+
 - **Matrix Cyberpunk UI**: Green-on-black terminal aesthetic
 - **Real-Time Flow Visualization**: Top flows by bandwidth with detailed inspection
 - **Policy Builder**: Drag-and-drop policy creation with priority management
@@ -120,6 +124,7 @@ NetCtl/
 ## Build & Run
 
 ### Backend
+
 ```bash
 cd backend
 cargo build --release
@@ -127,6 +132,7 @@ cargo run
 ```
 
 ### Frontend (Dev)
+
 ```bash
 cd frontend
 npm install
@@ -134,6 +140,7 @@ npm run dev
 ```
 
 ### Frontend (Prod)
+
 ```bash
 cd frontend
 npm run build
@@ -151,7 +158,7 @@ cargo test            # Run all tests including integration
 ## Technology Stack
 
 | Component | Technology | Version |
-|-----------|-----------|---------|
+| ----------- | ----------- | --------- |
 | Backend Runtime | Tokio | 1.0+ |
 | Web Framework | Axum | 0.6+ |
 | Database | SQLite | Latest |
@@ -185,7 +192,7 @@ cargo test            # Run all tests including integration
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     NetCtl Enterprise SDN Platform          │
 ├─────────────────────────────────────────────────────────────┤

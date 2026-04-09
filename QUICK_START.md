@@ -5,21 +5,27 @@
 Three enterprise-grade features for the NetCtl network control daemon:
 
 ### 1️⃣ TUI Setup Screen
+
 Interactive terminal wizard (Matrix-style) for configuring NetCtl on Linux systems
+
 - **Framework**: Ratatui
 - **Screens**: 8 configuration steps
 - **Code**: 1,100+ lines (backend/src/tui.rs + backend/src/bin/tui.rs)
 - **Entry Point**: `netctl-tui` binary
 
 ### 2️⃣ LAN Dashboard Configuration
+
 Web dashboard accessible on local networks with DNS verification and HTTPS
+
 - **API Modules**: lan_config.rs + cert_handler.rs
 - **Frontend**: LANConfig.tsx React component
 - **Features**: DNS loop detection, self-signed certs, accessibility validation
 - **Code**: 1,600+ lines
 
 ### 3️⃣ Linux Packaging
+
 Production-ready packages for Debian/Ubuntu and CentOS/RHEL distributions
+
 - **Formats**: .deb (Debian) + .rpm (Red Hat)
 - **Packages**: 3-part split (daemon, CLI, dashboard)
 - **Automation**: build-packages.sh script
@@ -30,21 +36,23 @@ Production-ready packages for Debian/Ubuntu and CentOS/RHEL distributions
 ## 📂 All New Files (16 Total)
 
 ### Backend (4 files)
-```
+
+bash
 ✓ backend/src/tui.rs                  (500 lines) - TUI state machine
 ✓ backend/src/bin/tui.rs              (600 lines) - TUI UI rendering
 ✓ backend/src/api/lan_config.rs       (350 lines) - Dashboard API
 ✓ backend/src/api/cert_handler.rs     (350 lines) - DNS & HTTPS
-```
 
 ### Frontend (2 files)
-```
+
+```bash
 ✓ frontend/src/components/LANConfig.tsx    (400 lines) - Config UI
 ✓ frontend/src/components/LANConfig.css    (500 lines) - Matrix styling
-```
+```bash
 
 ### Packaging (8 files)
-```
+
+```bash
 ✓ backend/systemd/netctl.service
 ✓ packaging/debian/control
 ✓ packaging/debian/rules
@@ -56,7 +64,8 @@ Production-ready packages for Debian/Ubuntu and CentOS/RHEL distributions
 ```
 
 ### Documentation (4 files)
-```
+
+```bash
 ✓ PACKAGING.md                        (500+ lines)
 ✓ IMPLEMENTATION_SUMMARY.md           (550+ lines)
 ✓ NEW_FILES_MANIFEST.md               (400+ lines)
@@ -68,28 +77,36 @@ Production-ready packages for Debian/Ubuntu and CentOS/RHEL distributions
 ## 🚀 How to Use
 
 ### Test 1: Run TUI Setup Wizard
+
 On a Linux system with Rust installed:
+
 ```bash
 cd /Users/jerichofoster/NetCtl/backend
 cargo run --bin netctl-tui
 ```
 
 ### Test 2: Build Debian Package
+
 On Ubuntu/Debian:
+
 ```bash
 cd /Users/jerichofoster/NetCtl
 bash build-packages.sh
 ```
 
 ### Test 3: Build RPM Package
+
 On CentOS/RHEL:
+
 ```bash
 cd /Users/jerichofoster/NetCtl
 bash build-packages.sh
 ```
 
 ### Test 4: Install & Run
+
 After building:
+
 ```bash
 # Debian
 sudo dpkg -i releases/netctl_1.0.0-1_amd64.deb
@@ -107,7 +124,7 @@ sudo systemctl start netctl
 ## 📊 Implementation Stats
 
 | Metric | Value |
-|--------|-------|
+| -------- | ------- |
 | New Files | 16 |
 | New Code Lines | 4,330+ |
 | Documentation Lines | 1,650+ |
@@ -121,6 +138,7 @@ sudo systemctl start netctl
 ## ✨ Key Features
 
 ### TUI Wizard
+
 - Interactive 8-screen configuration
 - Input validation (IPv4, hostnames, DNS servers)
 - Green/cyan Matrix aesthetic
@@ -128,6 +146,7 @@ sudo systemctl start netctl
 - Error recovery
 
 ### Dashboard Config
+
 - FQDN hostname support
 - DNS verification with loop detection
 - Self-signed HTTPS certificates
@@ -135,6 +154,7 @@ sudo systemctl start netctl
 - HSTS security headers
 
 ### Packaging
+
 - Multi-package split (daemon, CLI, dashboard)
 - Systemd service integration
 - Security hardening (ProtectSystem=strict)
@@ -170,12 +190,14 @@ All documentation is ready to use:
 ## 🎯 Next Steps
 
 ### For Development
+
 1. Set up Rust/Cargo on Linux system
 2. Run `cargo check` to verify compilation
 3. Run `cargo test --lib` to run 38+ unit tests
 4. Iterate based on feedback
 
 ### For Distribution
+
 1. Set up build environment (Ubuntu/CentOS)
 2. Run `bash build-packages.sh`
 3. Upload .deb and .rpm to repositories
@@ -183,6 +205,7 @@ All documentation is ready to use:
 5. Create GitHub release
 
 ### For Deployment
+
 1. Install package: `sudo dpkg -i` or `sudo rpm -i`
 2. Run setup: `sudo netctl-tui`
 3. Start service: `sudo systemctl start netctl`
@@ -225,7 +248,7 @@ git commit -m "docs: add implementation documentation"
 
 ## 🎓 File Organization
 
-```
+```bash
 NetCtl/
 ├── backend/src/
 │   ├── tui.rs                    ← NEW: TUI state machine
@@ -250,11 +273,13 @@ NetCtl/
 ## 📞 Support Documentation
 
 Detailed guides available:
+
 - **PACKAGING.md**: How to build, test, and distribute packages
 - **IMPLEMENTATION_SUMMARY.md**: Technical architecture and design decisions
 - **NEW_FILES_MANIFEST.md**: Complete file listing with line counts
 
 Each file contains:
+
 - Prerequisites/dependencies
 - Step-by-step instructions
 - Troubleshooting sections

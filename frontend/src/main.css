@@ -1,11 +1,15 @@
 :root {
   --primary-color: #00ff00;
   --secondary-color: #0a0e27;
+  --accent-color: rgba(0, 255, 0, 0.15);
   --border-color: rgba(0, 255, 0, 0.3);
   --text-primary: #00ff00;
   --text-secondary: rgba(0, 255, 0, 0.7);
   --bg-dark: #0a0e27;
   --bg-darker: #16213e;
+  --error-color: #ff4444;
+  --error-bg: rgba(255, 68, 68, 0.1);
+  --success-color: #00ff00;
 }
 
 * {
@@ -24,6 +28,7 @@ body {
   background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
   color: var(--text-primary);
   line-height: 1.6;
+  transition: background 0.3s;
 }
 
 /* Form Styles */
@@ -33,9 +38,9 @@ input, textarea, select {
   color: var(--text-primary);
   padding: 10px;
   font-family: inherit;
-  border-radius: 3px;
-  margin: 5px;
-  transition: all 0.3s;
+  border-radius: 4px;
+  margin: 5px 0;
+  transition: all 0.3s ease;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -52,9 +57,9 @@ button {
   color: var(--text-primary);
   padding: 8px 16px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   font-family: inherit;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   text-transform: uppercase;
   font-size: 0.85em;
   letter-spacing: 1px;
@@ -66,17 +71,18 @@ button:hover {
 }
 
 .btn-primary {
-  background: rgba(0, 255, 0, 0.15);
+  background: var(--accent-color);
+  border-color: var(--primary-color);
 }
 
 .btn-delete {
-  border-color: #ff4444;
-  color: #ff4444;
+  border-color: var(--error-color);
+  color: var(--error-color);
 }
 
 .btn-delete:hover {
-  background: rgba(255, 68, 68, 0.1);
-  box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+  background: var(--error-bg);
+  box-shadow: 0 0 10px var(--error-bg);
 }
 
 /* Table Styles */
@@ -116,28 +122,30 @@ tbody tr:hover {
 .status {
   display: inline-block;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.8em;
   letter-spacing: 0.5px;
+  font-weight: bold;
 }
 
 .status.active {
   background: rgba(0, 255, 0, 0.2);
-  color: #00ff00;
+  color: var(--success-color);
 }
 
 .status.blocked {
   background: rgba(255, 68, 68, 0.2);
-  color: #ff4444;
+  color: var(--error-color);
 }
 
 /* Form Layout */
-.vlan-form, .device-form, .qos-form {
+.vlan-form, .device-form, .qos-form, .policy-form {
   background: rgba(0, 255, 0, 0.05);
   padding: 20px;
   border: 1px solid var(--border-color);
   border-radius: 5px;
   margin: 20px 0;
+  transition: all 0.3s ease;
 }
 
 .form-group {
@@ -150,42 +158,43 @@ tbody tr:hover {
   text-transform: uppercase;
   font-size: 0.85em;
   letter-spacing: 1px;
+  color: var(--text-primary);
 }
 
 /* Card Styles */
-.vlan-card, .device-card {
+.vlan-card, .device-card, .policy-item, .metrics-graph {
   background: rgba(0, 255, 0, 0.05);
   border: 1px solid var(--border-color);
   border-radius: 5px;
   padding: 15px;
   margin: 10px 0;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
-.vlan-card:hover, .device-card:hover {
+.vlan-card:hover, .device-card:hover, .policy-item:hover, .metrics-graph:hover {
   border-color: var(--primary-color);
   background: rgba(0, 255, 0, 0.1);
   box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
 }
 
-.vlan-header, .card-header {
+.vlan-header, .card-header, .policy-header, .metrics-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.vlan-header h3, .card-header h3 {
+.vlan-header h3, .card-header h3, .policy-header span, .metrics-header {
   margin: 0;
 }
 
-.vlan-details, .card-details {
+.vlan-details, .card-details, .policy-details {
   font-size: 0.9em;
   color: var(--text-secondary);
 }
 
-.vlan-details p, .card-details p {
-  margin: 8px 0;
+.vlan-details p, .card-details p, .policy-details span {
+  margin: 5px 0;
 }
 
 /* Utilities */
@@ -212,6 +221,16 @@ tbody tr:hover {
   margin-bottom: 20px;
 }
 
+.error {
+  background: var(--error-bg);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: var(--error-color);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .metrics-grid {
     grid-template-columns: 1fr !important;

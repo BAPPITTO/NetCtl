@@ -1,23 +1,25 @@
-Name:           netctl
-Version:        1.0.0
-Release:        1%{?dist}
-Summary:        Enterprise Network Control Daemon
-License:        Apache-2.0
-URL:            https://github.com/yourusername/netctl
-Source0:        netctl-%{version}.tar.gz
 
-BuildRequires:  cargo
-BuildRequires:  rustc
-BuildRequires:  openssl-devel
-BuildRequires:  npm
-BuildRequires:  python3
-BuildRequires:  gcc
-BuildArch:      x86_64 aarch64
+Name: netctl
+%global git_version %(git describe --tags --abbrev=0 2>/dev/null || echo 1.0.0)
+Version: %{git_version}
+Release: 1%{?dist}
+Summary: Enterprise Network Control Daemon
+License: Apache-2.0
+URL: https://github.com/BAPPITTO/netctl
+Source0: netctl-%{version}.tar.gz
 
-Requires:       systemd
-Requires:       libudev
-Requires:       openssl-libs
-Requires:       dnsmasq >= 2.75
+BuildRequires: cargo
+BuildRequires: rustc
+BuildRequires: openssl-devel
+BuildRequires: npm
+BuildRequires: python3
+BuildRequires: gcc
+BuildArch: x86_64 aarch64
+
+Requires: systemd
+Requires: libudev
+Requires: openssl-libs
+Requires: dnsmasq >= 2.75
 
 %description
 NetCtl is a production-grade network management daemon with kernel-space
@@ -33,17 +35,19 @@ Features:
 
 Requires Linux kernel 5.8 or later with eBPF/XDP support.
 
+# CLI subpackage
 %package cli
-Summary:        NetCtl Command-Line Interface
-Requires:       %{name}%{?_isa} = %{version}-%{release}
+Summary: NetCtl Command-Line Interface
+Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description cli
 Command-line tools for managing the NetCtl network control daemon.
 
+# Web dashboard subpackage
 %package dashboard
-Summary:        NetCtl Web Dashboard
-Requires:       %{name} = %{version}-%{release}
-Requires:       httpd
+Summary: NetCtl Web Dashboard
+Requires: %{name} = %{version}-%{release}
+Requires: httpd
 
 %description dashboard
 Web-based dashboard for monitoring and managing the NetCtl daemon.
@@ -53,12 +57,12 @@ Provides real-time network visualization, flow tracking, and configuration.
 %setup -q
 
 %build
-# Build backend
+# Build backend Rust binaries
 cd backend
 cargo build --release --lib --bin netctl-daemon --bin netctl-cli --bin netctl-tui
 cd ..
 
-# Build frontend
+# Build frontend dashboard
 cd frontend
 npm install
 npm run build
@@ -75,7 +79,7 @@ install -d %{buildroot}/var/run/netctl
 install -d %{buildroot}/usr/share/netctl/dashboard
 install -d %{buildroot}/usr/share/doc/netctl
 
-# Install binaries
+# Install backend binaries
 install -m 0755 backend/target/release/netctl-daemon %{buildroot}/usr/bin/
 install -m 0755 backend/target/release/netctl-cli %{buildroot}/usr/bin/
 install -m 0755 backend/target/release/netctl-tui %{buildroot}/usr/bin/
@@ -83,7 +87,7 @@ install -m 0755 backend/target/release/netctl-tui %{buildroot}/usr/bin/
 # Install systemd service
 install -m 0644 backend/systemd/netctl.service %{buildroot}/usr/lib/systemd/system/
 
-# Install web dashboard
+# Install frontend dashboard
 cp -r frontend/dist/* %{buildroot}/usr/share/netctl/dashboard/
 
 # Install documentation
@@ -106,16 +110,10 @@ if ! id -u netctl >/dev/null 2>&1; then
 fi
 
 %post
-# Create necessary directories with proper permissions
-mkdir -p /etc/netctl/certificates
-mkdir -p /var/lib/netctl
-mkdir -p /var/log/netctl
-mkdir -p /var/run/netctl
+# Create necessary directories with correct ownership and permissions
+mkdir -p /etc/netctl/certificates /var/lib/netctl /var/log/netctl /var/run/netctl
 
-chown -R netctl:netctl /etc/netctl
-chown -R netctl:netctl /var/lib/netctl
-chown -R netctl:netctl /var/log/netctl
-chown -R netctl:netctl /var/run/netctl
+chown -R netctl:netctl /etc/netctl /var/lib/netctl /var/log/netctl /var/run/netctl
 
 chmod 750 /etc/netctl
 chmod 700 /etc/netctl/certificates
@@ -123,7 +121,7 @@ chmod 750 /var/lib/netctl
 chmod 755 /var/log/netctl
 chmod 750 /var/run/netctl
 
-# Generate self-signed certificate if not present
+# Generate self-signed certificate if missing
 if [ ! -f /etc/netctl/certificates/netctl.crt ]; then
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout /etc/netctl/certificates/netctl.key \
@@ -134,11 +132,11 @@ if [ ! -f /etc/netctl/certificates/netctl.crt ]; then
     chmod 644 /etc/netctl/certificates/netctl.crt
 fi
 
-# Reload systemd daemon
+# Reload systemd
 systemctl daemon-reload || true
 
 %preun
-# Stop service before uninstall
+# Stop service during uninstall
 if [ $1 -eq 0 ]; then
     systemctl stop netctl || true
     systemctl disable netctl || true
@@ -147,8 +145,8 @@ fi
 %files
 /usr/bin/netctl-daemon
 /usr/lib/systemd/system/netctl.service
-/etc/netctl/certificates
 %dir /etc/netctl
+/etc/netctl/certificates
 %config(noreplace) /etc/netctl/netctl.env.example
 /var/lib/netctl
 /var/log/netctl

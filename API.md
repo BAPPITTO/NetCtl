@@ -2,19 +2,23 @@
 
 Complete REST API reference for NetCtl Network Control Engine.
 
+---
+
 ## Base URL
 
-```
-http://localhost:3001
-```
+<http://localhost:3001>
+
+---
 
 ## Authentication
 
-Currently, NetCtl uses localhost-only access. Authentication (JWT) is planned for future releases.
+Currently, NetCtl uses **localhost-only access**. Authentication (JWT) is planned for future releases.
+
+---
 
 ## Response Format
 
-All API responses follow this format:
+**Success Response:**
 
 ```json
 {
@@ -22,111 +26,81 @@ All API responses follow this format:
   "data": { /* endpoint-specific data */ },
   "error": null
 }
-```
 
-On error:
-```json
+Error Response:
+
 {
   "success": false,
   "data": null,
   "error": "Error message"
 }
-```
 
-## Endpoints
 
-### System
+---
 
-#### Health Check
-```
+Endpoints
+
+System
+
+Health Check
+
 GET /api/health
-```
-
 Check if the daemon is running and responsive.
 
-**Response:**
-```json
+Response:
+
 {
   "success": true,
-  "data": {
-    "status": "healthy"
-  }
+  "data": { "status": "healthy" }
 }
-```
 
-#### Get System State
-```
+Get System State
+
 GET /api/state
-```
-
 Retrieve complete system state including devices, VLANs, and configuration.
 
-**Response:**
-```json
+Response:
+
 {
   "success": true,
   "data": {
-    "devices": {
-      "device-id-1": {
-        "id": "device-id-1",
-        "mac": "aa:bb:cc:dd:ee:ff",
-        "name": "WorkStation",
-        "vlan_id": 10,
-        "rate_limit_mbps": 100,
-        "blocked": false,
-        "created_at": "2026-04-08T14:30:00Z",
-        "last_seen": "2026-04-08T14:45:00Z"
-      }
-    },
-    "vlans": {
-      "10": {
-        "id": 10,
-        "name": "Guest Network",
-        "subnet": "192.168.10.0/24",
-        "gateway": "192.168.10.1",
-        "dhcp_enabled": true,
-        "interface": "eth0.10",
-        "created_at": "2026-04-08T14:20:00Z"
-      }
-    },
+    "devices": { ... },
+    "vlans": { ... },
     "ipv4_forwarding_enabled": true,
     "xdp_attached": ["eth0"],
     "timestamp": "2026-04-08T14:45:00Z"
   }
 }
-```
 
-### Interfaces
 
-#### List Interfaces
-```
+---
+
+Interfaces
+
+List Interfaces
+
 GET /api/interfaces
-```
+Get list of available network interfaces.
 
-Get list of available network interfaces with auto-detection.
+Response:
 
-**Response:**
-```json
 {
   "success": true,
-  "data": {
-    "interfaces": ["eth0", "eth1", "wlan0"]
-  }
+  "data": { "interfaces": ["eth0", "eth1", "wlan0"] }
 }
-```
 
-### VLANs
 
-#### Create VLAN
-```
+---
+
+VLANs
+
+Create VLAN
+
 POST /api/vlan
-Content-Type: application/json
-```
-
 Create a new VLAN with automatic interface provisioning.
 
-**Request:**
-```json
+Request Body:
+
 {
   "vlan_id": 10,
   "name": "Guest Network",
@@ -134,503 +108,215 @@ Create a new VLAN with automatic interface provisioning.
   "gateway": "192.168.10.1",
   "dhcp_enabled": true
 }
-```
 
-**Response:**
-```json
+Response:
+
 {
   "success": true,
-  "data": {
-    "id": 10,
-    "name": "Guest Network",
-    "subnet": "192.168.10.0/24",
-    "gateway": "192.168.10.1",
-    "dhcp_enabled": true,
-    "dhcp_start": "192.168.10.100",
-    "dhcp_end": "192.168.10.200",
-    "interface": "eth0.10",
-    "created_at": "2026-04-08T14:20:00Z"
-  }
+  "data": { ... VLAN object ... }
 }
-```
 
-**Parameters:**
-- `vlan_id` (number, required): VLAN ID (1-4094)
-- `name` (string, required): Human-readable name
-- `subnet` (string, required): Network in CIDR notation (e.g., 192.168.10.0/24)
-- `gateway` (string, required): Gateway IP address
-- `dhcp_enabled` (boolean, required): Whether to enable DHCP
+Parameters:
 
-#### List VLANs
-```
+Field Type Required Description
+
+vlan_id number yes VLAN ID (1-4094)
+name string yes Human-readable name
+subnet string yes Network in CIDR notation
+gateway string yes Gateway IP address
+dhcp_enabled boolean yes Enable DHCP
+
+
+List VLANs
+
 GET /api/vlans
-```
-
 Get all configured VLANs.
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 10,
-      "name": "Guest Network",
-      "subnet": "192.168.10.0/24",
-      "gateway": "192.168.10.1",
-      "dhcp_enabled": true,
-      "interface": "eth0.10",
-      "created_at": "2026-04-08T14:20:00Z"
-    }
-  ]
-}
-```
+Response: Array of VLAN objects.
 
-#### Delete VLAN
-```
+Delete VLAN
+
 DELETE /api/vlan/:vlan_id
-```
+Remove a VLAN.
 
-Remove a VLAN and clean up associated configuration.
+Response:
 
-**Parameters:**
-- `vlan_id` (number, URL parameter): VLAN ID to delete
-
-**Response:**
-```json
 {
   "success": true,
-  "data": {
-    "vlan_id": 10,
-    "deleted": true
-  }
+  "data": { "vlan_id": 10, "deleted": true }
 }
-```
 
-### Devices
 
-#### List Devices
-```
+---
+
+Devices
+
+List Devices
+
 GET /api/devices
-```
-
 Get all connected and managed devices.
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "device-1",
-      "mac": "aa:bb:cc:dd:ee:ff",
-      "name": "WorkStation",
-      "vlan_id": 10,
-      "rate_limit_mbps": 100,
-      "blocked": false,
-      "created_at": "2026-04-08T14:30:00Z",
-      "last_seen": "2026-04-08T14:45:00Z"
-    }
-  ]
-}
-```
+Create Device
 
-#### Create Device
-```
 POST /api/devices
-Content-Type: application/json
-```
-
 Register a new device.
 
-**Request:**
-```json
+Request Body:
+
 {
   "mac": "aa:bb:cc:dd:ee:ff",
   "name": "WorkStation",
   "vlan_id": 10
 }
-```
 
-**Response:**
-```json
+Response:
+
 {
   "success": true,
-  "data": {
-    "id": "device-1",
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "name": "WorkStation",
-    "vlan_id": 10,
-    "rate_limit_mbps": null,
-    "blocked": false,
-    "created_at": "2026-04-08T14:30:00Z",
-    "last_seen": null
-  }
+  "data": { ... device object ... }
 }
-```
 
-**Parameters:**
-- `mac` (string, required): MAC address (aa:bb:cc:dd:ee:ff format)
-- `name` (string, required): Device name
-- `vlan_id` (number, optional): VLAN ID to assign to device
+Parameters:
 
-### QoS (Quality of Service)
+Field Type Required Description
 
-#### Set QoS Rule
-```
+mac string yes MAC address
+name string yes Device name
+vlan_id number no VLAN ID assignment
+
+
+
+---
+
+QoS (Quality of Service)
+
+Set QoS Rule
+
 POST /api/qos/device/:mac
-Content-Type: application/json
-```
-
 Set rate limit or blocking for a device.
 
-**Parameters:**
-- `mac` (string, URL parameter): Device MAC address
+Request:
 
-**Request:**
-```json
 {
   "mac": "aa:bb:cc:dd:ee:ff",
   "rate_mbps": 100
 }
-```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "rate_mbps": 100
-  }
-}
-```
+Special Values:
 
-**Special Values:**
-- `rate_mbps: 0` - Block all traffic from device
-- `rate_mbps: 100` - Limit to 100 Mbps
-- `rate_mbps: 1000` - Limit to 1 Gbps
+rate_mbps Effect
 
-#### List QoS Rules
-```
+0 Block all traffic
+100 Limit to 100 Mbps
+1000 Limit to 1 Gbps
+
+
+List QoS Rules
+
 GET /api/qos/devices
-```
-
 Get all configured QoS rules.
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "aa:bb:cc:dd:ee:ff": 100,
-    "11:22:33:44:55:66": 50,
-    "ff:ff:ff:ff:ff:ff": 0
-  }
-}
-```
+Remove QoS Rule
 
-#### Remove QoS Rule
-```
 DELETE /api/qos/device/:mac
-```
+Remove rate limit for a device.
 
-Delete QoS rule for a device (remove rate limit).
 
-**Parameters:**
-- `mac` (string, URL parameter): Device MAC address
+---
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "removed": true
-  }
-}
-```
+Metrics
 
-### Metrics
+Get Metrics Summary
 
-#### Get Metrics Summary
-```
 GET /api/metrics/summary
-```
+Aggregated system metrics.
 
-Get aggregated system metrics.
+Stream Live Metrics (SSE)
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "devices": 5,
-    "total_rate_mbps": 350.5,
-    "packets_dropped": 1234,
-    "total_bytes_sent": 1073741824,
-    "timestamp": "2026-04-08T14:45:00Z"
-  }
-}
-```
-
-#### Stream Live Metrics (SSE)
-```
 GET /api/metrics/stream
-```
+Server-Sent Events stream for real-time metrics. Example:
 
-Server-Sent Events stream for real-time metrics. This endpoint streams updates every ~100ms.
+from sseclient import SSEClient
+import json
 
-**Connection:**
-```javascript
-const eventSource = new EventSource('/api/metrics/stream');
+client = SSEClient('http://localhost:3001/api/metrics/stream')
+for event in client:
+    metrics = json.loads(event.data)
+    print(metrics)
 
-eventSource.onmessage = (event) => {
-  const metrics = JSON.parse(event.data);
-  console.log(metrics);
-};
-```
 
-**Data Format:**
-```json
-{
-  "mac": "aa:bb:cc:dd:ee:ff",
-  "packets_sent": 54321,
-  "packets_dropped": 12,
-  "bytes_sent": 536870912,
-  "bytes_received": 268435456,
-  "current_rate_mbps": 85.5,
-  "timestamp": "2026-04-08T14:45:00.123Z"
-}
-```
+---
 
-### Dashboard Configuration (NEW)
+Dashboard Configuration
 
-#### Configure Dashboard
-```
+Configure Dashboard
+
 POST /api/dashboard/configure
-Content-Type: application/json
-```
+Configure dashboard hostname, port, and HTTPS settings.
 
-Configure dashboard hostname, port, and HTTPS settings for LAN access.
+Verify DNS Configuration
 
-**Request:**
-```json
-{
-  "hostname": "netctl.local",
-  "port": 443,
-  "enable_https": true,
-  "local_ip_address": "192.168.1.100"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "success": true,
-    "hostname": "netctl.local",
-    "port": 443,
-    "url": "https://netctl.local",
-    "certificate_generated": true,
-    "message": "Configuration applied successfully"
-  }
-}
-```
-
-**Parameters:**
-- `hostname` (string, optional): FQDN for dashboard (e.g., netctl.local)
-- `port` (number, optional): Port number (default: 443)
-- `enable_https` (boolean, optional): Enable HTTPS with self-signed cert
-- `local_ip_address` (string, required): Local IP for verification
-
-### DNS Verification (NEW)
-
-#### Verify DNS Configuration
-```
 POST /api/dns/verify
-Content-Type: application/json
-```
+Check DNS resolution and loops.
 
-Verify DNS resolution and detect loops for dashboard hostname.
+Generate Self-Signed Certificate
 
-**Request:**
-```json
-{
-  "hostname": "netctl.local",
-  "expected_ip": "192.168.1.100",
-  "dns_servers": ["8.8.8.8", "8.8.4.4"]
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "hostname": "netctl.local",
-    "status": "Valid",
-    "resolved_ip": "192.168.1.100",
-    "expected_ip": "192.168.1.100",
-    "loop_detected": false,
-    "message": "DNS resolution successful"
-  }
-}
-```
-
-**Status Values:**
-- `Valid` - Hostname resolves to expected IP
-- `Invalid` - Hostname resolves to different IP
-- `Loopback` - DNS loop detected (hostname resolves to itself)
-- `Unreachable` - DNS servers not responding
-- `Misconfigured` - DNS configuration error
-
-**Parameters:**
-- `hostname` (string, required): FQDN to verify
-- `expected_ip` (string, required): Expected resolved IP address
-- `dns_servers` (array, optional): Custom DNS servers to query
-
-### Certificate Management (NEW)
-
-#### Generate Self-Signed Certificate
-```
 POST /api/certificate/generate
-Content-Type: application/json
-```
-
 Generate self-signed HTTPS certificate for dashboard.
 
-**Request:**
-```json
-{
-  "common_name": "netctl.local",
-  "country": "US",
-  "state": "California",
-  "locality": "San Francisco",
-  "organization": "NetCtl",
-  "validity_days": 365
-}
-```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "success": true,
-    "certificate_path": "/etc/netctl/certificates/netctl.local.crt",
-    "key_path": "/etc/netctl/certificates/netctl.local.key",
-    "valid_from": "2026-04-08T00:00:00Z",
-    "valid_until": "2027-04-08T00:00:00Z",
-    "common_name": "netctl.local",
-    "message": "Certificate generated successfully"
-  }
-}
-```
+---
 
-## Error Responses
+Error Responses
 
-### 400 Bad Request
-```json
-{
-  "success": false,
-  "data": null,
-  "error": "Invalid VLAN ID"
-}
-```
+400 Bad Request
 
-### 500 Internal Server Error
-```json
-{
-  "success": false,
-  "data": null,
-  "error": "Failed to create VLAN: permission denied"
-}
-```
 
-## Rate Limiting
+{ "success": false, "data": null, "error": "Invalid VLAN ID" }
 
-Currently not enforced (coming in v0.2.0). All requests are accepted.
+500 Internal Server Error
 
-## Examples
 
-### Create Guest Network VLAN
-```bash
+{ "success": false, "data": null, "error": "Failed to create VLAN: permission denied" }
+
+
+---
+
+Examples
+
+Create Guest VLAN
+
 curl -X POST http://localhost:3001/api/vlan \
   -H "Content-Type: application/json" \
-  -d '{
-    "vlan_id": 20,
-    "name": "Guest Network",
-    "subnet": "192.168.20.0/24",
-    "gateway": "192.168.20.1",
-    "dhcp_enabled": true
-  }'
-```
+  -d '{ "vlan_id": 20, "name": "Guest Network", "subnet": "192.168.20.0/24", "gateway": "192.168.20.1", "dhcp_enabled": true }'
 
-### Add Device and Set Rate Limit
-```bash
-# Create device
-curl -X POST http://localhost:3001/api/devices \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "name": "Video Streaming Device",
-    "vlan_id": 20
-  }'
+Add Device and Set Rate Limit
 
-# Set 50 Mbps limit for video streaming
-curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:ff \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "rate_mbps": 50
-  }'
-```
+curl -X POST http://localhost:3001/api/devices -H "Content-Type: application/json" -d '{"mac":"aa:bb:cc:dd:ee:ff","name":"Video Device","vlan_id":20}'
+curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:ff -H "Content-Type: application/json" -d '{"mac":"aa:bb:cc:dd:ee:ff","rate_mbps":50}'
 
-### Block a Device
-```bash
-curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:ff \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mac": "aa:bb:cc:dd:ee:ff",
-    "rate_mbps": 0
-  }'
-```
+Block a Device
 
-### Get Real-Time Metrics
-```bash
-# Python example
-import requests
-import json
+curl -X POST http://localhost:3001/api/qos/device/aa:bb:cc:dd:ee:ff -H "Content-Type: application/json" -d '{"mac":"aa:bb:cc:dd:ee:ff","rate_mbps":0}'
+
+Get Real-Time Metrics (Python SSE)
+
 from sseclient import SSEClient
-
-url = 'http://localhost:3001/api/metrics/stream'
-client = SSEClient(url)
-
+import json
+client = SSEClient('http://localhost:3001/api/metrics/stream')
 for event in client:
-    if event.data:
-        metrics = json.loads(event.data)
-        print(f"Device {metrics['mac']}: {metrics['current_rate_mbps']} Mbps")
-```
+    metrics = json.loads(event.data)
+    print(metrics)
 
-## Pagination
 
-Not currently implemented. All responses return complete data.
+---
 
-## Versioning
+Notes
 
-API version: `1.0` (v0.1.0 release)
+Pagination: Not implemented; all responses return complete data.
 
-Backward compatibility: All v0.x releases maintain API compatibility.
-
-## Deprecation Policy
+API version: 1.0 (v0.1.0 release)
 
 Deprecated endpoints will be marked 3 releases before removal.
 
-## Rate Limiting
-
-Coming in v0.2.0:
-- 100 requests/second per IP
-- 1000 requests/second globally
-- Configurable via environment variables
+Rate limiting coming in v0.2.0: 100 req/sec per IP, 1000 req/sec globally.

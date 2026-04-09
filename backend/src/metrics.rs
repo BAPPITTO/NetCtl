@@ -15,6 +15,7 @@ pub struct DeviceMetrics {
 }
 
 impl DeviceMetrics {
+    /// Create a new metrics record for a device
     pub fn new(mac: String) -> Self {
         Self {
             mac,
@@ -29,62 +30,51 @@ impl DeviceMetrics {
 }
 
 /// Live metrics collector
+#[derive(Debug, Default)]
 pub struct MetricsCollector {
     device_metrics: HashMap<String, DeviceMetrics>,
 }
 
 impl MetricsCollector {
     pub fn new() -> Self {
-        Self {
-            device_metrics: HashMap::new(),
-        }
+        Self::default()
     }
 
-    /// Update device metrics
+    /// Update metrics for a specific device
     pub fn update_device_metrics(&mut self, metrics: DeviceMetrics) {
         self.device_metrics.insert(metrics.mac.clone(), metrics);
     }
 
-    /// Get all device metrics
+    /// Get metrics for all devices
     pub fn get_all_metrics(&self) -> Vec<DeviceMetrics> {
         self.device_metrics.values().cloned().collect()
     }
 
-    /// Get metrics for specific device
+    /// Get metrics for a specific device
     pub fn get_device_metrics(&self, mac: &str) -> Option<DeviceMetrics> {
         self.device_metrics.get(mac).cloned()
     }
 
-    /// Generate summary metrics
+    /// Generate aggregated metrics summary
     pub fn get_summary(&self) -> MetricsSummary {
-        let mut total_packets_sent = 0u64;
-        let mut total_packets_dropped = 0u64;
-        let mut total_bytes_sent = 0u64;
-        let mut total_bytes_received = 0u64;
-        let mut total_rate_mbps = 0.0f64;
+        let mut summary = MetricsSummary::default();
+        summary.device_count = self.device_metrics.len();
+        summary.timestamp = Utc::now().to_rfc3339();
 
         for metrics in self.device_metrics.values() {
-            total_packets_sent += metrics.packets_sent;
-            total_packets_dropped += metrics.packets_dropped;
-            total_bytes_sent += metrics.bytes_sent;
-            total_bytes_received += metrics.bytes_received;
-            total_rate_mbps += metrics.current_rate_mbps;
+            summary.total_packets_sent += metrics.packets_sent;
+            summary.total_packets_dropped += metrics.packets_dropped;
+            summary.total_bytes_sent += metrics.bytes_sent;
+            summary.total_bytes_received += metrics.bytes_received;
+            summary.total_rate_mbps += metrics.current_rate_mbps;
         }
 
-        MetricsSummary {
-            total_packets_sent,
-            total_packets_dropped,
-            total_bytes_sent,
-            total_bytes_received,
-            total_rate_mbps,
-            device_count: self.device_metrics.len(),
-            timestamp: Utc::now().to_rfc3339(),
-        }
+        summary
     }
 }
 
 /// Aggregated metrics summary
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct MetricsSummary {
     pub total_packets_sent: u64,
     pub total_packets_dropped: u64,

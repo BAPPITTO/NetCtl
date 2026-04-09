@@ -2,7 +2,7 @@
   background: linear-gradient(135deg, #0a0e27 0%, #16213e 100%);
   color: #00ff00;
   min-height: 100vh;
-  font-family: 'Courier New', monospace;
+  font-family: 'Times New Roman', serif;
   overflow-x: hidden;
 }
 
@@ -135,6 +135,7 @@
   font-weight: bold;
   color: #00ff00;
   text-shadow: 0 0 10px #00ff00;
+  font-family: 'Times New Roman', serif;
 }
 
 .metric-label {
@@ -143,6 +144,7 @@
   margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-family: 'Times New Roman', serif;
 }
 
 .dashboard-loading {
@@ -153,5 +155,5 @@
   background: linear-gradient(135deg, #0a0e27 0%, #16213e 100%);
   color: #00ff00;
   font-size: 1.5em;
-  font-family: 'Courier New', monospace;
+  font-family: 'Times New Roman', serif;
 }

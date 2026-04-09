@@ -5,20 +5,28 @@ set -e
 case "$1" in
     remove)
         # Stop service if running
-        systemctl stop netctl || true
+        if systemctl is-active --quiet netctl; then
+            systemctl stop netctl || true
+        fi
 
         # Disable service
-        systemctl disable netctl || true
+        if systemctl is-enabled --quiet netctl; then
+            systemctl disable netctl || true
+        fi
 
         # Clean up runtime files but preserve configuration
-        rm -rf /var/run/netctl/* 2>/dev/null || true
+        if [ -d /var/run/netctl ]; then
+            rm -rf /var/run/netctl/* 2>/dev/null || true
+        fi
 
         echo "NetCtl service stopped. Configuration preserved in /etc/netctl"
         ;;
 
     upgrade|deconfigure)
-        # Stop service during upgrade
-        systemctl stop netctl || true
+        # Stop service during upgrade/deconfigure if active
+        if systemctl is-active --quiet netctl; then
+            systemctl stop netctl || true
+        fi
         ;;
 
     *)
