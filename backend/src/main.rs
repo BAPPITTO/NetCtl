@@ -11,6 +11,26 @@ use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+
+
+    let state = Arc::new(AppState::new());
+
+    let ctx = PluginContext {
+        state: state.clone(),
+    };
+
+    let mut plugin_manager = PluginManager::new();
+
+    // register plugins
+    plugin_manager.register(Box::new(plugins::logger::LoggerPlugin));
+
+    // test event loop
+    loop {
+        plugin_manager.dispatch(&Event::Tick, &ctx)
+        std::thread::sleep(std::time::Duration::from_secs(5));
+
+    }
+
     // Initialize structured logging with environment filter
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -39,3 +59,12 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+
+mod plugins;
+
+use plugins::manager::PluginManager;
+use plugins::plugin::Event;
+use plugins::context::PluginContext;
+
+use std::sync::Arc;

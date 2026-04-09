@@ -396,7 +396,6 @@ Never run on production networks without testing
 
 Architecture Diagram
 
-
 ```bash
 Browser (React Dashboard) -> <http://localhost:5173>
              │ HTTP/SSE
