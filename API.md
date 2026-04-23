@@ -12,7 +12,7 @@ Complete REST API reference for NetCtl Network Control Engine.
 
 ## Authentication
 
-Currently, NetCtl uses **localhost-only access**. Authentication (JWT) is planned for future releases.
+Currently, NetCtl uses **localhost-only access**. Authentication (JWT) is planned for future releases. For now, ensure your API calls originate from the same machine for security.
 
 ---
 
